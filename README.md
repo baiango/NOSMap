@@ -29,9 +29,9 @@ VastHash takes a `&[u64x4]` and does a bitwise XOR with a fixed constant to each
 The fixed-sized stride table is designed to always hit at least 3 probes in 32 indices in `1_b_hashes` when the load is low. It's also much more resistant to clustering than linear probing, the shorter travel of it provides high spatial locality.
 
 # 🧻🤣🤣🤣 References
-[Faster than Rust and C++: the PERFECT hash table](https://youtu.be/DMQ_HcNSOAI)
-[Array of structures (AoS) and structure of arrays (SoA)](https://en.wikipedia.org/wiki/AoS_and_SoA#Structure_of_arrays)
-[Optimizing Open Addressing - thenumb.at](https://thenumb.at/Hashtables/)
-[C++Now 2018: You Can Do Better than std::unordered_map: New Improvements to Hash Table Performance](https://youtu.be/M2fKMP47slQ)
-[CppCon 2016: Timur Doumler “Want fast C++? Know your hardware!"](https://youtu.be/BP6NxVxDQIs)
-[dendibakh/perf-book](https://github.com/dendibakh/perf-book)
+[Faster than Rust and C++: the PERFECT hash table](https://youtu.be/DMQ_HcNSOAI)  
+[Array of structures (AoS) and structure of arrays (SoA)](https://en.wikipedia.org/wiki/AoS_and_SoA#Structure_of_arrays)  
+[Optimizing Open Addressing - thenumb.at](https://thenumb.at/Hashtables/)  
+[C++Now 2018: You Can Do Better than std::unordered_map: New Improvements to Hash Table Performance](https://youtu.be/M2fKMP47slQ)  
+[CppCon 2016: Timur Doumler “Want fast C++? Know your hardware!"](https://youtu.be/BP6NxVxDQIs)  
+[dendibakh/perf-book](https://github.com/dendibakh/perf-book)  
