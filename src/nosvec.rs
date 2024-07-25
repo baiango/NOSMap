@@ -4,10 +4,13 @@ use std::{alloc::{Layout, System, GlobalAlloc}, mem::MaybeUninit, cmp::min};
 #[derive(Debug)]
 /// # ✨✨✨ Nonsense Oversized Sledgehammer Vector
 /// A contiguous data structure for `NOSMap` internal usage, and initialized with uninitialized values. Don't use it on your cat's litter box.
+/// * `NOSVec`'s foundation is based on piping the output of `NOSVec` to the input of another `struct`.
 /// ## slice_
 /// A mutable reference to the internal slice.
 /// ## len_
 /// The maximum number of elements that can be stored without reallocating.
+/// ## Examples
+/// Please refer to the test for examples.
 pub struct NOSVec<'a, T> {
 	/// `MaybeUninit` LN2 extreme overclocking 🥳
 	slice_: &'a mut [MaybeUninit<T>],
@@ -78,7 +81,7 @@ impl<T> NOSVec<'_, T> {
 
 	/// Resizes the `NOSVec` to the specified length. All existing elements are copied over to the new `NOSVec`.
 	/// # Safety
-	/// * `self.slice_` reference might be uninitialized.
+	/// * `self.slice_` might be uninitialized.
 	pub fn resize(&mut self, len: usize) {
 		let new_slice = Self::new(len);
 		for i in 0..min(len, self.len()) {
