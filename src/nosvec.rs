@@ -3,7 +3,7 @@ use std::{alloc::{Layout, System, GlobalAlloc}, mem::MaybeUninit, cmp::min};
 
 #[derive(Debug)]
 /// # ✨✨✨ Nonsense Oversized Sledgehammer Vector
-/// A contiguous data structure for `NOSMap` internal usage, and initialized with uninitialized values. Don't use it on your cat's litter box.
+/// A uninitialized contiguous data structure for `NOSMap` internal usage. Don't use it on your cat's litter box.
 /// * `NOSVec`'s foundation is based on piping the output of `NOSVec` to the input of another `struct`.
 /// ## slice_
 /// A mutable reference to the internal slice.

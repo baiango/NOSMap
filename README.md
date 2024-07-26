@@ -9,7 +9,7 @@ NOSMap was designed for to end the users' search for the next fastest Hashmap on
 NOSMap will copy whatever you put in it, and then pack them together, thus you must insert pointers for the large struct. The design of this is due to the overhead of the pointers.
 You must use nightly Rustc to compile NOSMap, or it'll fail because of Rustc didn't support portable SIMD with the stable and beta version.
 
-# #️⃣😴😴😴 Hashmap architecture high-level overview
+# #️⃣😴😴😴 Architecture high-level overview
 NOSMap was inspired by GPref's design, which is adding 2 bytes together and use it as a hash to find new buckets.
 
 NOSMap uses way different design, it has 3 important layers of arrays.
