@@ -1,5 +1,0 @@
-mod nosvec;
-
-
-fn main() {
-}
