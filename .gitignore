@@ -1,2 +1,4 @@
 *.asm
 *.exe
+/nosmap-cppcheck-build-dir
+tempCodeRunnerFile.c
