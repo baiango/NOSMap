@@ -6,6 +6,9 @@
     <check-unused-templates>true</check-unused-templates>
     <max-ctu-depth>2</max-ctu-depth>
     <max-template-recursion>100</max-template-recursion>
+    <defines>
+        <define name="TESTS"/>
+    </defines>
     <paths>
         <dir name="src"/>
     </paths>
