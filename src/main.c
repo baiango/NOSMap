@@ -6,7 +6,7 @@ void test_run() {
 	printf("---------- Run tests ----------\n");
 	nosvec_test();
 	nosmap_test();
-	vast_hash_test();
+	vasthash_test();
 	printf("---------- End of tests ----------\n");
 #endif
 }
@@ -14,6 +14,7 @@ void test_run() {
 
 int main() {
 	test_run();
+	return 0;
 	// Create a vector of unsigned 32-bit integers with a length of 10
 	NOSVec vec = nosvec_new(10, sizeof(uint32_t), DATATYPE_U32);
 

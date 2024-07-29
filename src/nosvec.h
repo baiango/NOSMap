@@ -17,21 +17,23 @@ enum DataType {
 	DATATYPE_I64,
 	DATATYPE_F32,
 	DATATYPE_F64,
+	DATATYPE_SIZE,
+	DATATYPE_M256I
 };
 
 typedef struct {
 	void *v;
-	uint64_t len;
-	uint32_t type;
+	size_t len;
+	uint32_t data_size;
+	uint32_t data_type;
 } NOSVec;
 
 void nosvec_destroy(NOSVec* vec);
-NOSVec nosvec_new(uint64_t len, uint32_t data_size, uint32_t data_type);
-bool nosvec_resize(NOSVec *vec, uint64_t new_len);
+NOSVec nosvec_new(size_t len, size_t data_size, uint32_t data_type);
+bool nosvec_resize(NOSVec *vec, size_t new_len);
 
 #ifdef TESTS
 void nosvec_test_new();
 void nosvec_test_resize();
 void nosvec_test();
 #endif
-

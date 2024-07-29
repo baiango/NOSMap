@@ -6,10 +6,9 @@ __attribute__((destructor)) void nosvec_destroy(NOSVec* vec) {
 	printf("Destroyed NOSVec #%p!", vec);
 #endif
 	free(vec->v);
-	vec->v = NULL;
 }
 
-NOSVec nosvec_new(uint64_t len, uint32_t data_size, uint32_t data_type) {
+NOSVec nosvec_new(size_t len, size_t data_size, uint32_t data_type) {
 	NOSVec vec = {NULL, 0, DATATYPE_UNDEF};
 	vec.v = malloc(len * data_size);
 	if (vec.v == NULL) {
@@ -17,12 +16,13 @@ NOSVec nosvec_new(uint64_t len, uint32_t data_size, uint32_t data_type) {
 		return vec;
 	}
 	vec.len = len;
-	vec.type = data_type;
+	vec.data_size = data_size;
+	vec.data_type = data_type;
 	return vec;
 }
 
-bool nosvec_resize(NOSVec *vec, uint64_t new_len) {
-	void *new_data = realloc(vec->v, new_len * sizeof(uint32_t));
+bool nosvec_resize(NOSVec *vec, size_t new_len) {
+	void *new_data = realloc(vec->v, new_len * vec->data_size);
 	if (new_data == NULL) {
 		printf("Failed to resize address %p!", new_data);
 		return false;
@@ -35,7 +35,7 @@ bool nosvec_resize(NOSVec *vec, uint64_t new_len) {
 #ifdef TESTS
 void nosvec_test_new() {
 	NOSVec vec = nosvec_new(5, sizeof(int), DATATYPE_U32);
-	if (!vec.v || vec.len != 5 || vec.type != DATATYPE_U32) {
+	if (!vec.v || vec.len != 5 || vec.data_type != DATATYPE_U32) {
 		printf("nosvec_test_new | test failed!\n");
 		return;
 	}
