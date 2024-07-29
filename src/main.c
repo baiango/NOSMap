@@ -1,9 +1,12 @@
-#include "nosvec.c"
+#include "nosmap_all.h"
+
 
 void test_run() {
 #ifdef TESTS
 	printf("---------- Run tests ----------\n");
 	nosvec_test();
+	nosmap_test();
+	vast_hash_test();
 	printf("---------- End of tests ----------\n");
 #endif
 }

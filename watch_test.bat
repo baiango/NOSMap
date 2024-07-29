@@ -1,5 +1,5 @@
 :loop
 	cls
-	gcc src\main.c -o main.exe -mavx2 -DTESTS && main.exe
+	gcc src\*.c -o main.exe -g -mavx2 -DTESTS && main.exe
 	timeout /t 5
 goto loop
