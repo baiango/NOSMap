@@ -3,7 +3,7 @@
 
 __attribute__((destructor)) void nosvec_destroy(NOSVec* vec) {
 #if !defined(__OPTIMIZE__) || (__OPTIMIZE__ == 0)
-	printf("nosvec_destroy | Destroyed NOSVec #%p!", vec);
+	printf("nosvec_destroy | Destroyed NOSVec #%p!\n", vec);
 #endif
 	free(vec->v);
 }
@@ -12,7 +12,7 @@ NOSVec nosvec_new(size_t len, size_t data_size, uint32_t data_type) {
 	NOSVec vec = {NULL, 0, DATATYPE_UNDEF};
 	vec.v = malloc(len * data_size);
 	if (vec.v == NULL) {
-		printf("nosvec_new | Failed to allocate address %p!", vec.v);
+		printf("nosvec_new | Failed to allocate address %p!\n", vec.v);
 		return vec;
 	}
 	vec.len = len;
@@ -24,7 +24,7 @@ NOSVec nosvec_new(size_t len, size_t data_size, uint32_t data_type) {
 bool nosvec_resize(NOSVec *vec, size_t new_len) {
 	void *new_data = realloc(vec->v, new_len * vec->data_size);
 	if (new_data == NULL) {
-		printf("nosvec_resize | Failed to resize address %p!", new_data);
+		printf("nosvec_resize | Failed to resize address %p!\n", new_data);
 		return false;
 	}
 	vec->len = new_len;

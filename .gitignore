@@ -2,3 +2,4 @@
 *.exe
 /nosmap-cppcheck-build-dir
 tempCodeRunnerFile.c
+/inspector

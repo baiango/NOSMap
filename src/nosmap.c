@@ -3,18 +3,22 @@
 
 NOSMap nosmap_new(size_t initial_capacity, size_t data_size, uint32_t data_type) {
 	NOSMap map = {0, NULL};
-	map.buckets = nosvec_new(initial_capacity, data_size, data_type);
-	if (map.buckets.v == NULL) {
-		printf("nosmap_new | Failed to allocate address %p!", map.buckets.v);
+	map.key_value = nosvec_new(initial_capacity, data_size, data_type);
+	if (map.key_value.v == NULL) {
+		printf("nosmap_new | Failed to allocate address %p!\n", map.key_value.v);
 		return map;
 	}
 	map.size = initial_capacity;
 	return map;
 }
 
-// NOSMapSearchResult nosmap__find_bucket(NOSMap *map, uint8_t *key) {
-// 	size_t index = vast_hash(key) % map->size;
-// }
+NOSMapSearchResult nosmap__find_bucket(NOSMap *map, NOSVec *key) {
+	size_t index = vasthash_hash(key) % map->size;
+
+	while (map->hashes_1_byte[index] & 1 != 0) {
+
+	}
+}
 
 #ifdef TESTS
 void nosmap_test() {
