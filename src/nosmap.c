@@ -30,7 +30,7 @@ NOSMap nosmap_new(size_t initial_capacity, DataInfo key_info, DataInfo value_inf
 NOSMapSearchResult nosmap__find_bucket(NOSMap *map, NOSVec *key) {
 #if !defined(__OPTIMIZE__) || (__OPTIMIZE__ == 0)
 	if (key->info.type != DATATYPE_U8) {
-		printf("vasthash | input_data->data_type is not DATATYPE_U8! Returning {UINT64_MAX, false}.\n");
+		printf("nosmap__find_bucket | key->info.type is not DATATYPE_U8! Returning {UINT64_MAX, false}.\n");
 		return (NOSMapSearchResult){UINT64_MAX, false};
 	}
 #endif
