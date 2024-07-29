@@ -12,7 +12,7 @@ uint64_t sum_u64x4_scalar(__m256i input_data) {
 
 uint64_t vasthash_hash(NOSVec *input_data) {
 #if !defined(__OPTIMIZE__) || (__OPTIMIZE__ == 0)
-	if (input_data->data_type != DATATYPE_M256I) {
+	if (input_data->info.type != DATATYPE_M256I) {
 		printf("vasthash | input_data->data_type is not DATATYPE_M256I! Returning UINT64_MAX.\n");
 		return UINT64_MAX;
 	}
@@ -40,7 +40,7 @@ void vasthash_test_impl() {
 }
 
 void vasthash_test_hash_invaild() {
-	NOSVec u64vec = nosvec_new(0, sizeof(uint64_t), DATATYPE_U64);
+	NOSVec u64vec = nosvec_new(0, (DataInfo){sizeof(uint64_t), DATATYPE_U64});
 	uint64_t result = vasthash_hash(&u64vec);
 	if (result == UINT64_MAX) {
 		printf("vasthash_test_hash_invaild | test passed.\n");
@@ -50,7 +50,7 @@ void vasthash_test_hash_invaild() {
 }
 
 void vasthash_test_hash() {
-	NOSVec u64vec = nosvec_new(2, sizeof(__m256i), DATATYPE_M256I);
+	NOSVec u64vec = nosvec_new(2, (DataInfo){sizeof(__m256i), DATATYPE_M256I});
 	for (size_t i = 0; i < u64vec.len; i++) {
 		((__m256i *)u64vec.v)[i] = _mm256_set1_epi64x(123);
 	}

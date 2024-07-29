@@ -15,11 +15,14 @@ typedef struct {
 
 typedef struct {
 	size_t size;
+	DataInfo key_info;
+	DataInfo value_info;
 	uint8_t *hashes_1_byte;
 	NOSVec key_value;
 } NOSMap;
 
-NOSMap nosmap_new(size_t initial_capacity, size_t data_size, uint32_t data_type);
+NOSMap nosmap_new(size_t initial_capacity, DataInfo key_info, DataInfo value_type);
+NOSMapSearchResult nosmap__find_bucket(NOSMap *map, NOSVec *key);
 
 #ifdef TESTS
 void nosmap_test();
