@@ -7,7 +7,6 @@
 
 enum DataType {
 	DATATYPE_UNDEF,
-	DATATYPE_PTR = 1 << 31,
 	DATATYPE_U8,
 	DATATYPE_U16,
 	DATATYPE_U32,
@@ -20,7 +19,8 @@ enum DataType {
 	DATATYPE_F64,
 	DATATYPE_SIZE,
 	DATATYPE_M256I,
-	DATATYPE_NOSMAP_KEY_VALUE
+	DATATYPE_NOSMAP_KEY_VALUE,
+	DATATYPE_PTR = 1 << 30,
 };
 
 
@@ -35,12 +35,14 @@ typedef struct {
 	DataInfo info;
 } NOSVec;
 
-void nosvec_destroy(NOSVec* vec);
+void nosvec_destroy();
 NOSVec nosvec_new(size_t len, DataInfo data_info);
+NOSVec nosvec_new_u8_ptr(uint8_t *bytes, size_t len);
 bool nosvec_resize(NOSVec *vec, size_t new_len);
 
 #ifdef TESTS
 void nosvec_test_new();
+void nosvec_test_new_ptr();
 void nosvec_test_resize();
 void nosvec_test();
 #endif

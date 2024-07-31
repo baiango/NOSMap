@@ -3,11 +3,13 @@
 
 int main() {
 #ifdef TESTS
+	{
 	printf("---------- Run tests ----------\n");
 	nosvec_test();
-	nosmap_test();
 	vasthash_test();
+	nosmap_test();
 	printf("---------- End of tests ----------\n");
+	}
 #endif
 	{ // NOSVec
 		// Create a vector of unsigned 32-bit integers with a length of 10
