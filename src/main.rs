@@ -17,8 +17,7 @@ fn main() {
 		let mut map = NOSMap::<i32>::new((1_000_000.0 / 0.969) as usize);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.put(key.clone(), i as i32);
-			let (index, _, _) = map._find_buckets_string(&key);
-			assert_eq!(map.key_values[index].value, i as i32);
+			assert_eq!(map.get(&key), Some(i as i32));
 		}
 
 		println!("Time elapsed for NOSMap is: {:?}", start.elapsed());
