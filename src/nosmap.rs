@@ -41,20 +41,6 @@ pub struct NOSMap<V> {
 	modulo_const: usize
 }
 
-impl<V> Default for NOSMap<V> {
-	fn default() -> Self {
-		Self {
-			one_byte_hashes: vec![],
-			key_values: vec![],
-			resize_hashes: vec![],
-			load: 0,
-			grow_size: 1.618,
-			load_factor: 0.95,
-			modulo_const: 0
-		}
-	}
-}
-
 impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	pub fn new(initial_capacity: usize) -> Self {
 		let initial_prime_capacity = next_prime(initial_capacity as u32) as usize;
@@ -112,6 +98,20 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		if self.load > (self.key_values.len() as f32 * self.load_factor) as usize {
 			let new_capacity = max(self.key_values.len() + 1, (self.key_values.len() as f32 * self.grow_size).ceil() as usize);
 			self._resize(new_capacity);
+		}
+	}
+
+	pub fn get(&self, key: &Vec<u8>) -> Option<V> {
+		let (index, _, found) = self._find_buckets_string(&key);
+		found.then(|| self.key_values[index].value.clone())
+	}
+
+	pub fn remove(&mut self, key: &Vec<u8>) {
+		let (index, _, found) = self._find_buckets_string(&key);
+		if found {
+			self.one_byte_hashes[index] = TOMESTONE;
+			self.key_values[index] = KeyValue::default();
+			self.resize_hashes[index] = 0;
 		}
 	}
 
@@ -216,5 +216,37 @@ mod tests {
 
 			println!("Time elapsed for NOSMap is: {:?}", start.elapsed());
 		}
+	}
+
+	#[test]
+	fn test_get() {
+		let mut map = NOSMap::new(1);
+		let key = vec![1, 2, 3];
+		let value = "test_value".to_string();
+		map.put(key.clone(), value.clone());
+
+		let result = map.get(&key);
+		assert_eq!(result, Some(value));
+
+		let non_existent_key = vec![4, 5, 6];
+		let result = map.get(&non_existent_key);
+		assert_eq!(result, None);
+	}
+
+	#[test]
+	fn test_remove() {
+		let mut map = NOSMap::new(1);
+		let key = vec![1, 2, 3];
+		let value = "test_value".to_string();
+		map.put(key.clone(), value.clone());
+
+		map.remove(&key);
+		let result = map.get(&key);
+		assert_eq!(result, None);
+
+		let non_existent_key = vec![4, 5, 6];
+		map.remove(&non_existent_key);
+		let result = map.get(&non_existent_key);
+		assert_eq!(result, None);
 	}
 }
