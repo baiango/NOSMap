@@ -14,7 +14,7 @@ fn main() {
 	{
 		let start = Instant::now();
 
-		let mut map = NOSMap::<i32>::new(1);
+		let mut map = NOSMap::<i32>::new((1_000_000.0 / 0.874) as usize);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.put(key.clone(), i as i32);
 			let (index, _, _) = map._find_buckets_string(&key);
@@ -26,7 +26,7 @@ fn main() {
 	{
 		let start = Instant::now();
 
-		let mut map = HashMap::with_capacity(1);
+		let mut map = HashMap::with_capacity((1_000_000.0 / 0.874) as usize);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.insert(key.clone(), i as i32);
 			assert_eq!(map.get(&key), Some(&(i as i32)));

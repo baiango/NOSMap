@@ -73,10 +73,11 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
 		let div_const = uint_div_const(self.key_values.len() as u64);
 		let mut index = fast_mod(hash, div_const, self.key_values.len() as u64) as usize;
+		let compare_hash = hash as u8;
 		let next_stride = key[0] as usize;
 
 		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {
-			if hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[index]
+			if compare_hash & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[index]
 			&& *key == self.key_values[index].key {
 				return (index, true)
 			}

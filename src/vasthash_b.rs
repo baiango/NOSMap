@@ -15,8 +15,6 @@ pub fn hash(input_data: &[u64x4]) -> u64 {
 	sum_u64x4_scalar(hash)
 }
 
-/// Recommend to use `hash(&[u64x4])` instead of `hash_u8(&[u8])`.
-/// Because `hash_u8(&[u8])` is bottlenecked by all 16 x64 registers.
 pub fn hash_u8(input_data: &[u8]) -> u64 {
 	let mut hash = u64x4::splat(0);
 
@@ -44,8 +42,6 @@ pub fn hash_u8(input_data: &[u8]) -> u64 {
 
 	sum_u64x4_scalar(hash)
 }
-
-
 
 
 #[cfg(test)]
