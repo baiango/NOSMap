@@ -38,6 +38,7 @@ pub struct NOSMap<V> {
 	pub load: usize,
 	pub grow_size: f32,
 	pub load_factor: f32,
+	modulo_const: usize
 }
 
 impl<V> Default for NOSMap<V> {
@@ -48,7 +49,8 @@ impl<V> Default for NOSMap<V> {
 			resize_hashes: vec![],
 			load: 0,
 			grow_size: 1.618,
-			load_factor: 0.95
+			load_factor: 0.95,
+			modulo_const: 0
 		}
 	}
 }
@@ -66,15 +68,15 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			resize_hashes,
 			load: 0,
 			grow_size: 5.45,
-			load_factor: 0.95
+			load_factor: 0.95,
+			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize
 		}
 	}
 
 	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
-		let div_const = uint_div_const(self.key_values.len() as u64);
-		let mut index = fast_mod(hash, div_const, self.key_values.len() as u64) as usize;
+		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
 		let compare_hash = hash as u8;
-		let next_stride = key[0] as usize;
+		let next_stride = compare_hash as usize;
 
 		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {
 			if compare_hash & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[index]
@@ -82,7 +84,10 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 				return (index, true)
 			}
 
-			index = fast_mod((index + next_stride) as u64, div_const, self.key_values.len() as u64) as usize;
+			index += next_stride;
+			while index >= self.key_values.len() {
+				index -= self.key_values.len();
+			}
 		}
 		(index, false)
 	}
@@ -112,6 +117,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 
 	pub fn _resize(&mut self, new_capacity: usize) {
 		let new_prime_capacity = next_prime(new_capacity as u32) as usize;
+		self.modulo_const = uint_div_const(new_prime_capacity as u64) as usize;
 		self.load = 0;
 		let old_one_byte_hashes = mem::replace(&mut self.one_byte_hashes, vec![0; new_prime_capacity]);
 		let old_key_values = mem::replace(&mut self.key_values, vec![KeyValue::default(); new_prime_capacity]);
