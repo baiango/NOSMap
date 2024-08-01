@@ -1,11 +1,95 @@
 # 🤗✨ NOSmap - Dinitrogen oxide Hashmap
-NOSMap is a virtual homework experimental AVX2 accelerated hashmap ​project that aims to have a 90% load factor while being fast for low-latency number crunching and memory-intensive data processing algorithms at disregard of quadratic implementation difficulty and portability. However, multiple mini unit tests are made to ensure correctness of NOSMap.
+NOSMap is a virtual homework experimental AVX2 accelerated hashmap ​project that aims to have a 95% load factor while being fast for low-latency number crunching and memory-intensive data processing algorithms at disregard of quadratic implementation difficulty and portability. However, multiple mini unit tests are made to ensure correctness of NOSMap.
 
 NOSMap will speed up training tokenizer by minimizing memory reads and writes, reducing memory usage and computation to the minimum possible.
 
 NOSMap was designed for to end the users' search for the next fastest Hashmap on x86 CPU for few years.
 
 NOSMap will also ace most of the section on benchmarks from people; only if you can compile it, and the chance is 100.0% on AVX2 system because of the ease of the Rust installation.
+
+# 🫠🌪️🏳️ Performance
+I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash map. I will declare defeat.
+
+## 🔥 Without resize (initial_capacity set to `(n / 0.874) as usize`)
+**8_000_000_0 without resize:**
+```
+Time elapsed for NOSMap is: 20.4268717s
+Time elapsed for HashMap is: 31.8157656s
+```
+**1_000_000_0 without resize:**
+```
+Time elapsed for NOSMap is: 3.4925695s
+Time elapsed for HashMap is: 3.1065063s
+```
+**1_000_000 without resize:**
+```
+Time elapsed for NOSMap is: 267.9006ms
+Time elapsed for HashMap is: 241.2865ms
+```
+
+## 🧯 With resize (initial_capacity set to 1)
+**8_000_000_0 with resize:**
+```
+Time elapsed for NOSMap is: 65.2812344s
+Time elapsed for HashMap is: 59.7570615s
+```
+**1_000_000_0 with resize:**
+```
+Time elapsed for NOSMap is: 3.251221s
+Time elapsed for HashMap is: 4.5972115s
+```
+**1_000_000 with resize:**
+```
+Time elapsed for NOSMap is: 348.6611ms
+Time elapsed for HashMap is: 417.0091ms
+```
+
+**Running command:**
+```
+cargo r --release
+```
+**Code**
+```rs
+#![feature(portable_simd)]
+use std::{time::Instant, collections::HashMap};
+mod nosmap;
+mod vasthash_b;
+mod is_prime;
+use nosmap::NOSMap;
+
+
+fn main() {
+	let mut keys = Vec::with_capacity(1_000_000_0);
+	for i in 0..1_000_000_0 {
+		keys.push(Vec::<u8>::from(format!("key{}", i)));
+	}
+	{
+		let start = Instant::now();
+
+		let mut map = NOSMap::<i32>::new((1_000_000_0.0 / 0.874) as usize);
+		for (i, key) in keys.clone().into_iter().enumerate() {
+			map.put(key.clone(), i as i32);
+			let (index, _, _) = map._find_buckets_string(&key);
+			assert_eq!(map.key_values[index].value, i as i32);
+		}
+
+		println!("Time elapsed for NOSMap is: {:?}", start.elapsed());
+	}
+	{
+		let start = Instant::now();
+
+		let mut map = HashMap::with_capacity((1_000_000_0.0 / 0.874) as usize);
+		for (i, key) in keys.clone().into_iter().enumerate() {
+			map.insert(key.clone(), i as i32);
+			assert_eq!(map.get(&key), Some(&(i as i32)));
+		}
+
+		let duration = start.elapsed();
+
+		println!("Time elapsed for HashMap is: {:?}", duration);
+	}
+}
+```
 
 # 🎇🎆 Gain
 - High correctness and reliability - NOSMap's features are battle-tested
@@ -28,16 +112,21 @@ NOSMap was inspired by GPref's design, which is adding 2 bytes together and use 
 
 NOSMap uses way different design, it has 3 important layers of arrays.
 ```rs
-struct NOSMap {
-	1_b_hashes: Vec<u8>
-	key_values: Vec<K, V>
-	hashes: Vec<u64>
+pub struct NOSMap<V> {
+	pub one_byte_hashes: Vec<u8>,
+	pub key_values: Vec<KeyValue<V>>,
+	pub resize_hashes: Vec<u64>,
+
+	pub load: usize,
+	pub grow_size: f32,
+	pub load_factor: f32,
+	modulo_const: usize
 }
 ```
 
-The key will be hashed by VastHash, then uses the first and the last byte of the key as dynamic hashing to decide the next index for linear probe to find an empty bucket when keys are collided, and insert into a bucket. And it uses AVX2's `XOR` and `PTest` for fast key comparison.
+The key will be hashed by VastHash-b, then uses the first byte of the byte as dynamic hashing to decide the next index for linear probe to find an empty bucket when keys are collided, and insert into a bucket.
 
-VastHash takes a `&[u64x4]` and does a bitwise XOR with a fixed constant to each `u64x4` and summing it up. The distribution quality of VastHash was better than DJB2, but excels most algorithm with prime-sized vector.
+VastHash-b takes a `&[u64x4]` and summing it up. The distribution quality of VastHash-b was better than DJB2, but excels most algorithm with prime-sized vector.
 
 The dynamic hashing is designed to be resistant to clustering than linear probing, and the shorter travel of it provides higher spatial locality than double hashing.
 
@@ -52,12 +141,12 @@ class NOSMap:
 
 	def _find_bucket(self, key):
 		index = hash(key) % self.capacity
+		next_stride = (ord(key[0]) + ord(key[-1])) * 2 + 1
 
 		while self.buckets[index] != None:
 			if self.buckets[index][0] == key:
 				return index, True
 
-			next_stride = (ord(key[0]) + ord(key[-1])) * 2 + 1
 			index = (index + next_stride) % self.capacity
 
 		return index, False

@@ -6,7 +6,6 @@ const EMPTY: u8 = 0;
 const OCCUPIED: u8 = 0b1;
 const TOMESTONE: u8 = 0b10;
 
-
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct KeyValue<V> {
 	pub key: Vec<u8>,
