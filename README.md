@@ -1,5 +1,5 @@
 # 🤗✨ NOSmap - Dinitrogen oxide Hashmap
-NOSMap is a virtual homework experimental AVX2 accelerated hashmap ​project that aims to have a 95% load factor while being fast for low-latency number crunching and memory-intensive data processing algorithms at disregard of quadratic implementation difficulty and portability. However, multiple mini unit tests are made to ensure correctness of NOSMap.
+NOSMap is a virtual homework experimental AVX2 accelerated hashmap ​project that aims to have a 97% load factor while being fast for low-latency number crunching and memory-intensive data processing algorithms at disregard of quadratic implementation difficulty and portability. However, multiple mini unit tests are made to ensure correctness of NOSMap.
 
 NOSMap will speed up training tokenizer by minimizing memory reads and writes, reducing memory usage and computation to the minimum possible.
 
@@ -8,47 +8,66 @@ NOSMap was designed for to end the users' search for the next fastest Hashmap on
 NOSMap will also ace most of the section on benchmarks from people; only if you can compile it, and the chance is 100.0% on AVX2 system because of the ease of the Rust installation.
 
 # 🫠🌪️🏳️ Performance
-I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash map. I will declare defeat.
+I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash map. I will declare defeat. I am done with this hash map.
 
 ## 🔥 Without resize (initial_capacity set to `(n / 0.874) as usize`)
-**8_000_000_0 without resize:**
+**8_000_000_0 preallocated:**
 ```
-Time elapsed for NOSMap is: 20.4268717s
-Time elapsed for HashMap is: 31.8157656s
+Time elapsed for NOSMap is: 35.0431943s
+Time elapsed for HashMap is: 30.9135405s
 ```
-**1_000_000_0 without resize:**
+**1_000_000_0 preallocated:**
 ```
-Time elapsed for NOSMap is: 3.4925695s
-Time elapsed for HashMap is: 3.1065063s
+Time elapsed for NOSMap is: 3.8114042s
+Time elapsed for HashMap is: 3.3304741s
 ```
-**1_000_000 without resize:**
+**1_000_000 preallocated:**
 ```
-Time elapsed for NOSMap is: 267.9006ms
-Time elapsed for HashMap is: 241.2865ms
+Time elapsed for NOSMap is: 281.597ms
+Time elapsed for HashMap is: 254.5021ms
 ```
 
 ## 🧯 With resize (initial_capacity set to 1)
 **8_000_000_0 with resize:**
 ```
-Time elapsed for NOSMap is: 65.2812344s
-Time elapsed for HashMap is: 59.7570615s
+Time elapsed for NOSMap is: 30.1894712s
+Time elapsed for HashMap is: 47.0093783s
 ```
 **1_000_000_0 with resize:**
 ```
-Time elapsed for NOSMap is: 3.251221s
-Time elapsed for HashMap is: 4.5972115s
+Time elapsed for NOSMap is: 4.3777659s
+Time elapsed for HashMap is: 4.6603318s
 ```
 **1_000_000 with resize:**
 ```
-Time elapsed for NOSMap is: 348.6611ms
-Time elapsed for HashMap is: 417.0091ms
+Time elapsed for NOSMap is: 352.1062ms
+Time elapsed for HashMap is: 401.9479ms
 ```
 
 **Running command:**
 ```
 cargo r --release
 ```
-**Code**
+**NOSMap setting**
+```rs
+	pub fn new(initial_capacity: usize) -> Self {
+		let initial_prime_capacity = next_prime(initial_capacity as u32) as usize;
+		let one_byte_hashes = vec![0; initial_prime_capacity];
+		let key_values = vec![KeyValue::default(); initial_prime_capacity];
+		let resize_hashes = vec![0; initial_prime_capacity];
+
+		Self {
+			one_byte_hashes,
+			key_values,
+			resize_hashes,
+			load: 0,
+			grow_size: 5.05,
+			load_factor: 0.97,
+			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize
+		}
+	}
+```
+**Benchmark code**
 ```rs
 #![feature(portable_simd)]
 use std::{time::Instant, collections::HashMap};
@@ -59,14 +78,14 @@ use nosmap::NOSMap;
 
 
 fn main() {
-	let mut keys = Vec::with_capacity(1_000_000_0);
-	for i in 0..1_000_000_0 {
+	let mut keys = Vec::with_capacity(1_000_000);
+	for i in 0..1_000_000 {
 		keys.push(Vec::<u8>::from(format!("key{}", i)));
 	}
 	{
 		let start = Instant::now();
 
-		let mut map = NOSMap::<i32>::new((1_000_000_0.0 / 0.874) as usize);
+		let mut map = NOSMap::<i32>::new((1_000_000.0 / 0.969) as usize);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.put(key.clone(), i as i32);
 			let (index, _, _) = map._find_buckets_string(&key);
@@ -78,7 +97,7 @@ fn main() {
 	{
 		let start = Instant::now();
 
-		let mut map = HashMap::with_capacity((1_000_000_0.0 / 0.874) as usize);
+		let mut map = HashMap::with_capacity((1_000_000.0 / 0.874) as usize);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.insert(key.clone(), i as i32);
 			assert_eq!(map.get(&key), Some(&(i as i32)));

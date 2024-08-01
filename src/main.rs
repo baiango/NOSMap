@@ -8,13 +8,13 @@ use nosmap::NOSMap;
 
 fn main() {
 	let mut keys = Vec::with_capacity(1_000_000);
-	for i in 1..1_000_000 {
+	for i in 0..1_000_000 {
 		keys.push(Vec::<u8>::from(format!("key{}", i)));
 	}
 	{
 		let start = Instant::now();
 
-		let mut map = NOSMap::<i32>::new((1_000_000.0 / 0.874) as usize);
+		let mut map = NOSMap::<i32>::new((1_000_000.0 / 0.969) as usize);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.put(key.clone(), i as i32);
 			let (index, _, _) = map._find_buckets_string(&key);

@@ -15,19 +15,17 @@ pub struct KeyValue<V> {
 /// # NOSMap
 /// NOSMap has a much slower resizing time than probing time.
 /// - The size should be pre-allocated.
+/// - NOSMap's speed is determined by resize count.
+/// - Lowering the load factor will not speed up NOSMap by much.
 /// ## Performance Explanation
 /// - `grow_size` effects NOSMap's performance the most.
 /// - `initial_capacity` effects NOSMap's performance because of resizing.
 /// - `load_factor` effects NOSMap's performance stablity.
 /// ## Recommend setting
-/// ### 300k Elements
-/// - initial_capacity: 1
-/// - grow_size: 1.618 * 4.97
-/// - load_factor: 0.999
 /// ### 1m Elements
 /// - initial_capacity: 1
-/// - grow_size 5.45,
-/// - load_factor 0.999
+/// - grow_size 5.05,
+/// - load_factor 0.97
 #[derive(Debug)]
 pub struct NOSMap<V> {
 	pub one_byte_hashes: Vec<u8>,
@@ -52,8 +50,8 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			key_values,
 			resize_hashes,
 			load: 0,
-			grow_size: 5.45,
-			load_factor: 0.95,
+			grow_size: 5.05,
+			load_factor: 0.97,
 			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize
 		}
 	}
