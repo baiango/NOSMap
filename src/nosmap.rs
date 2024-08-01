@@ -1,22 +1,11 @@
 use std::{mem, cmp::max, fmt::Debug};
-use crate::vasthash_b::*;
+use crate::{vasthash_b::*, is_prime::*};
 
 
 const EMPTY: u8 = 0;
 const OCCUPIED: u8 = 0b1;
 const TOMESTONE: u8 = 0b10;
 
-fn uint_div_const(div: usize) -> usize {
-	(1 << 63) / div
-}
-
-pub fn fast_mod(num: usize, div_const: usize, modulo: usize) -> usize {
-	let mut result = (num as u128 - (num as u128 * div_const as u128 >> 63) * modulo as u128) as usize;
-	if result >= modulo {
-		result -= modulo;
-	}
-	result
-}
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct KeyValue<V> {
@@ -24,6 +13,22 @@ pub struct KeyValue<V> {
 	pub value: V,
 }
 
+/// # NOSMap
+/// NOSMap has a much slower resizing time than probing time.
+/// - The size should be pre-allocated.
+/// ## Performance Explanation
+/// - `grow_size` effects NOSMap's performance the most.
+/// - `initial_capacity` effects NOSMap's performance because of resizing.
+/// - `load_factor` effects NOSMap's performance stablity.
+/// ## Recommend setting
+/// ### 300k Elements
+/// - initial_capacity: 1
+/// - grow_size: 1.618 * 4.97
+/// - load_factor: 0.999
+/// ### 1m Elements
+/// - initial_capacity: 1
+/// - grow_size 5.45,
+/// - load_factor 0.999
 #[derive(Debug)]
 pub struct NOSMap<V> {
 	pub one_byte_hashes: Vec<u8>,
@@ -43,45 +48,40 @@ impl<V> Default for NOSMap<V> {
 			resize_hashes: vec![],
 			load: 0,
 			grow_size: 1.618,
-			load_factor: 0.9
+			load_factor: 0.95
 		}
 	}
 }
 
 impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	pub fn new(initial_capacity: usize) -> Self {
-		if initial_capacity == 0 {
-			panic!("initial_capacity is 0!");
-		}
-		let one_byte_hashes = vec![0; initial_capacity];
-		let key_values = vec![KeyValue::default(); initial_capacity];
-		let resize_hashes = vec![0; initial_capacity];
+		let initial_prime_capacity = next_prime(initial_capacity as u32) as usize;
+		let one_byte_hashes = vec![0; initial_prime_capacity];
+		let key_values = vec![KeyValue::default(); initial_prime_capacity];
+		let resize_hashes = vec![0; initial_prime_capacity];
 
 		Self {
 			one_byte_hashes,
 			key_values,
 			resize_hashes,
 			load: 0,
-			grow_size: 1.618 * 2.0,
-			load_factor: 0.9
+			grow_size: 5.45,
+			load_factor: 0.95
 		}
 	}
 
 	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
-		let div_const = uint_div_const(self.key_values.len());
-		let mut index = fast_mod(hash as usize, div_const, self.key_values.len());
-		let mut stride_traveled = 0;
+		let div_const = uint_div_const(self.key_values.len() as u64);
+		let mut index = fast_mod(hash, div_const, self.key_values.len() as u64) as usize;
+		let next_stride = key[0] as usize;
 
 		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {
 			if hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[index]
 			&& *key == self.key_values[index].key {
-				return (index, true);
+				return (index, true)
 			}
 
-			let next_stride = key[0] as usize
-				- (stride_traveled / self.key_values.len());
-			stride_traveled += next_stride;
-			index = fast_mod(index + next_stride, div_const, self.key_values.len());
+			index = fast_mod((index + next_stride) as u64, div_const, self.key_values.len() as u64) as usize;
 		}
 		(index, false)
 	}
@@ -92,20 +92,6 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		(index, hash, found)
 	}
 
-	pub fn put(&mut self, key: Vec<u8>, value: V) {
-		let (index, hash, _) = self._find_buckets_string(&key);
-		self.one_byte_hashes[index] = hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED;
-		self.resize_hashes[index] = hash;
-		self.key_values[index] = KeyValue{key, value};
-		self.load += 1;
-
-		if self.load > (self.key_values.len() as f32 * self.load_factor) as usize {
-			let new_capacity = max(self.key_values.len() + 1, (self.key_values.len() as f32 * self.grow_size).ceil() as usize);
-			self._resize(new_capacity);
-		}
-	}
-
-	#[inline]
 	pub fn _put_only(&mut self, key: Vec<u8>, value: V, hash: u64, index: usize) {
 		self.one_byte_hashes[index] = hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED;
 		self.resize_hashes[index] = hash;
@@ -113,11 +99,22 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		self.load += 1;
 	}
 
+	pub fn put(&mut self, key: Vec<u8>, value: V) {
+		let (index, hash, _) = self._find_buckets_string(&key);
+		Self::_put_only(self, key, value, hash, index);
+
+		if self.load > (self.key_values.len() as f32 * self.load_factor) as usize {
+			let new_capacity = max(self.key_values.len() + 1, (self.key_values.len() as f32 * self.grow_size).ceil() as usize);
+			self._resize(new_capacity);
+		}
+	}
+
 	pub fn _resize(&mut self, new_capacity: usize) {
+		let new_prime_capacity = next_prime(new_capacity as u32) as usize;
 		self.load = 0;
-		let old_one_byte_hashes = mem::replace(&mut self.one_byte_hashes, vec![0; new_capacity]);
-		let old_key_values = mem::replace(&mut self.key_values, vec![KeyValue::default(); new_capacity]);
-		let old_resize_hashes = mem::replace(&mut self.resize_hashes, vec![0; new_capacity]);
+		let old_one_byte_hashes = mem::replace(&mut self.one_byte_hashes, vec![0; new_prime_capacity]);
+		let old_key_values = mem::replace(&mut self.key_values, vec![KeyValue::default(); new_prime_capacity]);
+		let old_resize_hashes = mem::replace(&mut self.resize_hashes, vec![0; new_prime_capacity]);
 
 		for old_index in 0..old_key_values.len() {
 			if old_one_byte_hashes[old_index] & OCCUPIED == OCCUPIED {
@@ -197,7 +194,7 @@ mod tests {
 	#[test]
 	fn test_large_capacity() {
 		let mut keys = Vec::with_capacity(1_000_000);
-		for i in 1..1_000_000 {
+		for i in 1..1_000_000_0 {
 			keys.push(Vec::<u8>::from(format!("key{}", i)));
 		}
 		{

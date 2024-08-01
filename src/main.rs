@@ -2,6 +2,7 @@
 use std::{time::Instant, collections::HashMap};
 mod nosmap;
 mod vasthash_b;
+mod is_prime;
 use nosmap::NOSMap;
 
 
@@ -25,7 +26,7 @@ fn main() {
 	{
 		let start = Instant::now();
 
-		let mut map = HashMap::new();
+		let mut map = HashMap::with_capacity(1);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.insert(key.clone(), i as i32);
 			assert_eq!(map.get(&key), Some(&(i as i32)));
