@@ -6,6 +6,18 @@ const EMPTY: u8 = 0;
 const OCCUPIED: u8 = 0b1;
 const TOMESTONE: u8 = 0b10;
 
+fn uint_div_const(div: usize) -> usize {
+	(1 << 63) / div
+}
+
+pub fn fast_mod(num: usize, div_const: usize, modulo: usize) -> usize {
+	let mut result = (num as u128 - (num as u128 * div_const as u128 >> 63) * modulo as u128) as usize;
+	if result >= modulo {
+		result -= modulo;
+	}
+	result
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct KeyValue<V> {
 	pub key: Vec<u8>,
@@ -56,7 +68,8 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	}
 
 	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
-		let mut index = hash as usize % self.key_values.len();
+		let div_const = uint_div_const(self.key_values.len());
+		let mut index = fast_mod(hash as usize, div_const, self.key_values.len());
 		let mut stride_traveled = 0;
 
 		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {
@@ -68,7 +81,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			let next_stride = key[0] as usize
 				- (stride_traveled / self.key_values.len());
 			stride_traveled += next_stride;
-			index = (index + next_stride) % self.key_values.len();
+			index = fast_mod(index + next_stride, div_const, self.key_values.len());
 		}
 		(index, false)
 	}
