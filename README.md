@@ -1,21 +1,18 @@
-# ✨ NOSmap - Dinitrogen oxide Hashmap
+# 🤗✨ NOSmap - Dinitrogen oxide Hashmap
 NOSMap is a virtual homework experimental AVX2 accelerated hashmap ​project that aims to have a 90% load factor while being fast for low-latency number crunching and memory-intensive data processing algorithms at disregard of quadratic implementation difficulty and portability. However, multiple mini unit tests are made to ensure correctness of NOSMap.
 
 NOSMap will speed up training tokenizer by minimizing memory reads and writes, reducing memory usage and computation to the minimum possible.
 
 NOSMap was designed for to end the users' search for the next fastest Hashmap on x86 CPU for few years.
 
-NOSMap will also ace most of the section on benchmarks from people; only if you can compile it, and the chance is 100.0% on AVX2 system because of the ease of the [UCRT64 GCC](https://www.msys2.org/) installer, and GCC is bundled in every Linux installation.
+NOSMap will also ace most of the section on benchmarks from people; only if you can compile it, and the chance is 100.0% on AVX2 system because of the ease of the Rust installation.
 
 # 🎇🎆 Gain
-- High correctness and reliability - The features are highly tested
-- Possibly read-Only Concurrent Hash Map with Write Lock
-- Few macros only
+- High correctness and reliability - NOSMap's features are battle-tested
+- Possibly read-only concurrent hash map with write lock
 
 # 🚤🔥 Drawbacks - Reason
-- Written in C instead of Rust - My skill issues 😭😭😭 ("I write assembly code in C that GCC can't even generate on its own.")
-- Abuses uninitialized memory - To speed up NOSMap
-- Use GCC extensions to optimize the code - My skill issues and to improve readability (It can be compiled into static library to enlarge the portiblity)
+- Written in Rust instead of C - My skill issues 😭😭😭 ("I cannot fix void * from SIGSEGV in C.")
 - Need a decompiler to read the code 🗿🙄👽
 
 # 🧻🤣🤣🤣 References
@@ -32,7 +29,7 @@ NOSMap was inspired by GPref's design, which is adding 2 bytes together and use 
 NOSMap uses way different design, it has 3 important layers of arrays.
 ```rs
 struct NOSMap {
-	1_b_hashes: Vec<u8x32>
+	1_b_hashes: Vec<u8>
 	key_values: Vec<K, V>
 	hashes: Vec<u64>
 }

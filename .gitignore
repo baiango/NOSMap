@@ -1,5 +1,2 @@
-*.asm
-*.exe
-/nosmap-cppcheck-build-dir
-tempCodeRunnerFile.c
-/inspector
+/target
+/NOSMap vtune
