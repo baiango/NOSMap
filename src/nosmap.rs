@@ -180,6 +180,7 @@ mod tests {
 		assert_eq!(map.key_values[index].value, 2);
 	}
 
+	/// `cargo test test_large_capacity --release`
 	#[test]
 	fn test_large_capacity() {
 		let mut keys = Vec::with_capacity(1_000_000);

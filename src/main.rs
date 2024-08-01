@@ -2,6 +2,7 @@
 use std::{time::Instant, collections::HashMap};
 mod nosmap;
 mod vasthash_b;
+mod is_prime;
 use nosmap::NOSMap;
 
 
