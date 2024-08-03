@@ -10,7 +10,7 @@ NOSMap will also ace most of the section on benchmarks from people; only if you 
 # 🫠🌪️🏳️ Performance
 I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash map. I will declare defeat. I am done with this hash map.
 
-| Map Type | Key Size | Capacity | Preallocated Time (ms) | Resizing Time (ms) |
+| Map Type | Key Size | Capacity | Preallocated Time | Resizing Time |
 |---|---|---|---|---|
 | NOSMap | 1,000,000 | 1,031,992 | 293.022ms | 380.7158ms |
 | NOSMap | 10,000,000 | 10,319,918 | 4.222s | 4.951s |
@@ -153,11 +153,12 @@ fn main() {
 ```
 
 # 🎇🎆 Gain
-- High correctness and reliability - NOSMap's features are battle-tested
+- High correctness and reliability - NOSMap's features are minimal and battle-tested
 - Possibly read-only concurrent hash map with write lock
+- NOSMap will only slow down by bucket collisions when the load factor is 95% above
 
 # 🚤🔥 Drawbacks - Reason
-- Written in Rust instead of C - My skill issues 😭😭😭 ("I cannot fix void * from SIGSEGV in C.")
+- Written in Rust instead of C - My skill issues 😭😭😭 ("I cannot fix `void *` from SIGSEGV in C.")
 - Need a decompiler to read the code 🗿🙄👽
 
 # 🧻🤣🤣🤣 References
