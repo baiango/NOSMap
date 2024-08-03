@@ -161,6 +161,7 @@ fn main() {
 	- Please refrain from setting the load factor below 95% because it slows NOSMap down.
 - NOSMap will drain [hash flooding attacks](https://en.wikipedia.org/wiki/Collision_attack) until memory has exhausted
 	- To collide with NOSMap's key, the first byte of the character and hash must match with another first byte of key and hash. But, it's harder to exploit bucket collisions than to simply overload NOSMap with unique keys because the NOSMap's probing mechanism is dependent on the hash function used. VashHash-b, which sums keys via AVX2, it's very unsecure but fast. A 50% chance a for collision of a compromised hash function requires 301.42 attempts, and each additional collision needs another 301.42 trials. With brute force, the difficulty increases significantly from 16-bit (501.42 tries) to 64-bit (5056937540.69 tries).
+	- You can tweak VashHash-b a little and NOSMap's linear probing will happily obfuscate VashHash-b, so, no one would know how to flood NOSMap without the source code.
 
 **Bucket collisions mathematical proof**
 ```py
