@@ -155,7 +155,7 @@ fn main() {
 # 🎇🎆 Gain
 - High correctness and reliability - NOSMap's features are minimal and battle-tested
 - Possibly read-only concurrent hash map with write lock
-- NOSMap will only slow down by bucket collisions when the load factor is 95% above
+- NOSMap will only slow down by bucket collisions when the load factor is 95% above. Please refrain from setting the load factor below 95%
 - NOSMap will drain [hash flooding attacks](https://en.wikipedia.org/wiki/Collision_attack)
 
 # 🚤🔥 Drawbacks - Reason

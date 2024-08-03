@@ -16,7 +16,7 @@ pub struct KeyValue<V> {
 /// NOSMap has a much slower resizing time than probing time.
 /// - The size should be pre-allocated.
 /// - NOSMap's speed is determined by resize count.
-/// - NOSMap will only start slowing down at 95% above load factor, so, lowering the load factor will not speed up NOSMap by much.
+/// - NOSMap will only start slowing down by bucket collisions at 95% above load factor, so, lowering the load factor will slow down NOSMap due to resizing time
 /// ## Performance Explanation
 /// - `grow_size` effects NOSMap's performance the most.
 /// - `initial_capacity` effects NOSMap's performance because of resizing.
@@ -24,7 +24,7 @@ pub struct KeyValue<V> {
 /// ## Recommend setting
 /// ### 1m Elements
 /// - initial_capacity: 1
-/// - grow_size 5.05,
+/// - grow_size 5.05
 /// - load_factor 0.97
 #[derive(Debug)]
 pub struct NOSMap<V> {
