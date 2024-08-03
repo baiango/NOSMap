@@ -157,6 +157,27 @@ fn main() {
 - Possibly read-only concurrent hash map with write lock
 - NOSMap will only slow down by bucket collisions when the load factor is 95% above. Please refrain from setting the load factor below 95%
 - NOSMap will drain [hash flooding attacks](https://en.wikipedia.org/wiki/Collision_attack) until memory has exhausted
+	- To collide with NOSMap's key, the first byte of the character and hash must match with another first byte of key and hash. But, it's harder to exploit bucket collisions than to simply overload NOSMap with unique keys because the NOSMap's probing mechanism is dependent on the hash function used. VashHash-b, which sums keys via AVX2, it's very unsecure but fast. A 50% chance a for collision of a compromised hash function requires 301.42 attempts, and each additional collision needs another 301.42 trials. With brute force, the difficulty increases significantly from 16-bit (501.42 tries) to 64-bit (5056937540.69 tries).
+
+**Bucket collisions mathematical proof**
+```py
+import math
+
+def calculate_collision_tries(n_bits, probability=0.5):
+	n = 2 ** n_bits
+	ln_probability = math.log(1 - probability)
+	k_approx = math.sqrt(-2 * n * ln_probability)
+	return k_approx
+
+n_bits = 16  # 2 bytes
+probability = 0.5
+k = calculate_collision_tries(n_bits, probability) # 301.42
+print(f"Number of tries for a {probability * 100.0:.2f}% chance of collision with a {n_bits}-bit hash: {k:.2f}")
+
+n_bits = 64  # 8 bytes
+k = calculate_collision_tries(n_bits, probability) # 5056937540.69
+print(f"Number of tries for a {probability * 100.0:.2f}% chance of collision with a {n_bits}-bit hash: {k:.2f}")
+```
 
 # 🚤🔥 Drawbacks - Reason
 - Written in Rust instead of C - My skill issues 😭😭😭 ("I cannot fix `void *` from SIGSEGV in C.")
