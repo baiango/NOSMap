@@ -59,8 +59,10 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
 		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
 		let compare_hash = hash as u8;
-		let mut next_stride = (key[0] + compare_hash) as usize + 1;
+		let mut next_stride = key[0] as usize + (hash & 0xff) as usize;
 
+		// The AMD64 is running out of regesiter to use, so it will cause NOSMap to run much slower.
+		// Please probe the hash in batch with an array, or set up an artificial boundary.
 		let mut i = 0;
 		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {
 			if compare_hash & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[index]
