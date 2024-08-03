@@ -59,7 +59,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
 		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
 		let compare_hash = hash as u8;
-		let mut next_stride = compare_hash as usize + 1;
+		let mut next_stride = (key[0] + compare_hash) as usize + 1;
 
 		let mut i = 0;
 		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {

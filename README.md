@@ -156,6 +156,7 @@ fn main() {
 - High correctness and reliability - NOSMap's features are minimal and battle-tested
 - Possibly read-only concurrent hash map with write lock
 - NOSMap will only slow down by bucket collisions when the load factor is 95% above
+- NOSMap will drain [hash flooding attacks](https://en.wikipedia.org/wiki/Collision_attack)
 
 # 🚤🔥 Drawbacks - Reason
 - Written in Rust instead of C - My skill issues 😭😭😭 ("I cannot fix `void *` from SIGSEGV in C.")
