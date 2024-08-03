@@ -10,43 +10,50 @@ NOSMap will also ace most of the section on benchmarks from people; only if you 
 # 🫠🌪️🏳️ Performance
 I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash map. I will declare defeat. I am done with this hash map.
 
-## 🔥 Without resize (initial_capacity set to `(n / 0.874) as usize`)
-**8_000_000_0 preallocated:**
-```
-Time elapsed for NOSMap is: 35.0431943s
-Time elapsed for HashMap is: 30.9135405s
-```
-**1_000_000_0 preallocated:**
-```
-Time elapsed for NOSMap is: 3.8114042s
-Time elapsed for HashMap is: 3.3304741s
-```
-**1_000_000 preallocated:**
-```
-Time elapsed for NOSMap is: 281.597ms
-Time elapsed for HashMap is: 254.5021ms
-```
-
-## 🧯 With resize (initial_capacity set to 1)
-**8_000_000_0 with resize:**
-```
-Time elapsed for NOSMap is: 30.1894712s
-Time elapsed for HashMap is: 47.0093783s
-```
-**1_000_000_0 with resize:**
-```
-Time elapsed for NOSMap is: 4.3777659s
-Time elapsed for HashMap is: 4.6603318s
-```
-**1_000_000 with resize:**
-```
-Time elapsed for NOSMap is: 352.1062ms
-Time elapsed for HashMap is: 401.9479ms
-```
+| Map Type | Key Size | Capacity | Preallocated Time (ms) | Resizing Time (ms) |
+|---|---|---|---|---|
+| NOSMap | 1,000,000 | 1,031,992 | 293.022ms | 380.7158ms |
+| NOSMap | 10,000,000 | 10,319,918 | 4.222s | 4.951s |
+| NOSMap | 80,000,000 | 82,559,344 | 39.605s | 45.892s |
+| NOSMap | [303,872](https://weakpass.com/wordlist/1859) | 313,594 | 99.2489ms | 156.946ms |
+| NOSMap | [38,647,798](https://weakpass.com/wordlist/1256) | 39,884,212 | 17.715s | 55.975s |
+||
+| HashMap | 1,000,000 | 1,144,165 | 244.8ms | 420.4349ms |
+| HashMap | 10,000,000 | 11,441,647 | 3.124s | 4.749s |
+| HashMap | 80,000,000 | 91,533,176 | 30.551s | 61.099s |
+| HashMap | [303,872](https://weakpass.com/wordlist/1859) | 347,680 | 79.388ms | 104.899ms |
+| HashMap | [38,647,798](https://weakpass.com/wordlist/1256) | 44,219,452 | 17.380s | 27.292s |
 
 **Running command:**
 ```
 cargo r --release
+```
+
+**Benchmark output:**
+```
+---------- Loading file ----------
+---------- Preallocated ----------
+Time elapsed for NOSMap is: 293.0227ms | key size 1000000 | capacity 1031992
+Time elapsed for HashMap is: 244.8ms | key size 1000000 | capacity 1144165
+Time elapsed for NOSMap is: 4.2228494s | key size 10000000 | capacity 10319918
+Time elapsed for HashMap is: 3.1242706s | key size 10000000 | capacity 11441647
+Time elapsed for NOSMap is: 39.6058656s | key size 80000000 | capacity 82559344
+Time elapsed for HashMap is: 30.5517177s | key size 80000000 | capacity 91533176
+Time elapsed for NOSMap is: 99.2489ms | key size 303872 | capacity 313594
+Time elapsed for HashMap is: 79.388ms | key size 303872 | capacity 347680
+Time elapsed for NOSMap is: 17.7158133s | key size 38647798 | capacity 39884212
+Time elapsed for HashMap is: 17.38028s | key size 38647798 | capacity 44219452
+---------- Resizing ----------
+Time elapsed for NOSMap is: 380.7158ms | key size 1000000 | capacity 0
+Time elapsed for HashMap is: 420.4349ms | key size 1000000 | capacity 0
+Time elapsed for NOSMap is: 4.9514057s | key size 10000000 | capacity 0
+Time elapsed for HashMap is: 4.7491988s | key size 10000000 | capacity 0
+Time elapsed for NOSMap is: 45.8922994s | key size 80000000 | capacity 0
+Time elapsed for HashMap is: 61.0990443s | key size 80000000 | capacity 0
+Time elapsed for NOSMap is: 156.946ms | key size 303872 | capacity 0
+Time elapsed for HashMap is: 104.8991ms | key size 303872 | capacity 0
+Time elapsed for NOSMap is: 55.975341s | key size 38647798 | capacity 0
+Time elapsed for HashMap is: 27.2924489s | key size 38647798 | capacity 0
 ```
 **NOSMap setting**
 ```rs
@@ -70,42 +77,78 @@ cargo r --release
 **Benchmark code**
 ```rs
 #![feature(portable_simd)]
-use std::{time::Instant, collections::HashMap};
+use std::{time::Instant, collections::HashMap, io::{BufReader, BufRead}, fs::File};
 mod nosmap;
 mod vasthash_b;
 mod is_prime;
 use nosmap::NOSMap;
 
 
-fn main() {
-	let mut keys = Vec::with_capacity(1_000_000);
-	for i in 0..1_000_000 {
+fn load_file_as_vec_vec_u8(file_path: &str) -> std::io::Result<Vec<Vec<u8>>> {
+	let file = File::open(file_path)?;
+	let reader = BufReader::new(file);
+
+	let mut vec_vec_u8 = Vec::new();
+
+	for (i, line) in reader.lines().enumerate() {
+		let line = line?;
+		vec_vec_u8.push(line.into_bytes());
+	}
+
+	Ok(vec_vec_u8)
+}
+
+fn benchmark_1(test_size: usize, test_capacity: usize) {
+	let mut keys = Vec::with_capacity(test_size);
+	for i in 0..test_size {
 		keys.push(Vec::<u8>::from(format!("key{}", i)));
 	}
+	benchmark_2(keys, test_capacity);
+}
+
+fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize) {
 	{
 		let start = Instant::now();
 
-		let mut map = NOSMap::<i32>::new((1_000_000.0 / 0.969) as usize);
+		let capacity = (test_capacity as f32 / 0.969).ceil() as usize;
+		let mut map = NOSMap::<i32>::new(capacity);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.put(key.clone(), i as i32);
 			assert_eq!(map.get(&key), Some(i as i32));
 		}
 
-		println!("Time elapsed for NOSMap is: {:?}", start.elapsed());
+		println!("Time elapsed for NOSMap is: {:?} | key size {} | capacity {}", start.elapsed(),keys.len(), capacity);
 	}
 	{
 		let start = Instant::now();
 
-		let mut map = HashMap::with_capacity((1_000_000.0 / 0.874) as usize);
+		let capacity = (test_capacity as f32 / 0.874).ceil() as usize;
+		let mut map = HashMap::with_capacity(capacity);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.insert(key.clone(), i as i32);
 			assert_eq!(map.get(&key), Some(&(i as i32)));
 		}
 
-		let duration = start.elapsed();
-
-		println!("Time elapsed for HashMap is: {:?}", duration);
+		println!("Time elapsed for HashMap is: {:?} | key size {} | capacity {}", start.elapsed(),keys.len(), capacity);
 	}
+}
+
+fn main() {
+	println!("---------- Loading file ----------");
+	let keys_304k = load_file_as_vec_vec_u8("Top304Thousand-probable-v2.txt").unwrap();
+	let keys_38m = load_file_as_vec_vec_u8("hk_hlm_founds.txt").unwrap();
+	println!("---------- Preallocated ----------");
+	benchmark_1(1_000_000, 1_000_000);
+	benchmark_1(1_000_000_0, 1_000_000_0);
+	benchmark_1(8_000_000_0, 8_000_000_0);
+	benchmark_2(keys_304k.clone(), keys_304k.len());
+	benchmark_2(keys_38m.clone(), keys_38m.len());
+	println!("---------- Resizing ----------");
+	benchmark_1(1_000_000, 0);
+	benchmark_1(1_000_000_0, 0);
+	benchmark_1(8_000_000_0, 0);
+	benchmark_2(keys_304k.clone(), 0);
+	benchmark_2(keys_38m.clone(), 0);
 }
 ```
 

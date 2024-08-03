@@ -4,7 +4,7 @@ pub fn uint_div_const(div: u64) -> u64 {
 
 pub fn fast_mod(num: u64, div_const: u64, modulo: u64) -> u64 {
 	let mut result = (num as u128 - (num as u128 * div_const as u128 >> 63) * modulo as u128) as u64;
-	if result >= modulo {
+	while result >= modulo {
 		result -= modulo;
 	}
 	result

@@ -59,8 +59,9 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
 		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
 		let compare_hash = hash as u8;
-		let next_stride = compare_hash as usize;
+		let mut next_stride = compare_hash as usize + 1;
 
+		let mut i = 0;
 		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {
 			if compare_hash & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[index]
 			&& *key == self.key_values[index].key {
@@ -71,6 +72,11 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			while index >= self.key_values.len() {
 				index -= self.key_values.len();
 			}
+			if i >= self.key_values.len() {
+				// println!("_find_buckets_hash | Index might have an infinite loop for key {:?} | index {}", key, index);
+				next_stride = 1;
+			}
+			i += 1;
 		}
 		(index, false)
 	}
@@ -93,9 +99,13 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		Self::_put_only(self, key, value, hash, index);
 
 		if self.load > (self.key_values.len() as f32 * self.load_factor) as usize {
-			let new_capacity = max(self.key_values.len() + 1, (self.key_values.len() as f32 * self.grow_size).ceil() as usize);
-			self._resize(new_capacity);
+			self._auto_resize();
 		}
+	}
+
+	pub fn _auto_resize(&mut self) {
+		let new_capacity = max(self.key_values.len() + 1, (self.key_values.len() as f32 * self.grow_size).ceil() as usize);
+		self._resize(new_capacity);
 	}
 
 	pub fn get(&self, key: &Vec<u8>) -> Option<V> {
