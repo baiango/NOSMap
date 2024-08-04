@@ -7,11 +7,7 @@ const OCCUPIED: u8 = 0b1;
 const TOMESTONE: u8 = 0b10;
 
 pub fn find_leftmost_avx2(input: u8x32, cmp: u8x32) -> u32 {
-	let le = input.simd_eq(cmp); // vpcmpeqd
-	if le.any() {
-		return le.to_bitmask().trailing_zeros() // vmovmskps, bsf
-	}
-	u32::MAX
+	input.simd_eq(cmp).to_bitmask().trailing_zeros() // vpcmpeqd, vmovmskps, bsf
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -64,9 +60,8 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		}
 	}
 
-	pub fn _find_empty_bucket_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
+	pub fn _find_empty_bucket_hash(&self, key: &Vec<u8>, hash: u64) -> usize {
 		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
-		let compare_hash = u8x32::splat(hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED);
 		let mut next_stride = key[0] as usize + (hash & 0x3ff) as usize;
 
 		// The AMD64 is running out of regesiter to use, so it will cause NOSMap to run much slower.
@@ -74,28 +69,12 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		let mut i = 0;
 		loop {
 			let simd_index = index / 32;
-			let mut one_byte_simd = self.one_byte_hashes[simd_index];
 			let empty = find_leftmost_avx2(self.one_byte_hashes[simd_index], u8x32::splat(EMPTY)) as usize;
 
-			// println!("_find_empty_bucket_hash | self.one_byte_hashes[simd_index] {:?}", self.one_byte_hashes[simd_index]);
-			println!("_find_empty_bucket_hash | self.key_values {:?}", self.key_values);
-			// println!("_find_empty_bucket_hash | empty {}", empty);
-
-			let hash_match = find_leftmost_avx2(self.one_byte_hashes[simd_index], compare_hash) as usize;
-
-			// println!("_find_empty_bucket_hash | hash_match {}", hash_match);
-
-			if hash_match != u32::MAX as usize {
-				let key_index = simd_index * 32 + hash_match;
-				if *key == self.key_values[key_index].key {
-					return (key_index, true)
-				}
-				one_byte_simd[hash_match] = 0;
-			}
-
 			if empty != u32::MAX as usize {
-				let empty_index = simd_index * 32 + empty;
-				return (empty_index, false);
+				if simd_index * 32 + empty < self.key_values.len() {
+					return simd_index * 32 + empty;
+				}
 			}
 
 			index += next_stride;
@@ -104,44 +83,47 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			}
 			if i >= self.key_values.len() {
 				// println!("_find_empty_bucket_hash | Index might have an infinite loop for key {:?} | index {}", key, index);
+				// println!("_find_empty_bucket_hash | self.key_values {:?}", self.key_values);
 				next_stride = 1;
 			}
 			i += 1;
 		}
 	}
 
-	pub fn _find_hash_match_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
+	pub fn _find_hash_match_hash(&self, key: &Vec<u8>, hash: u64) -> Option<usize> {
 		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
 		let compare_hash = u8x32::splat(hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED);
 		let mut next_stride = key[0] as usize + (hash & 0x3ff) as usize;
 
-		// The AMD64 is running out of regesiter to use, so it will cause NOSMap to run much slower.
-		// Please probe the hash in batch with an array, or set up an artificial boundary.
 		let mut i = 0;
 		loop {
 			let simd_index = index / 32;
 			let mut one_byte_simd = self.one_byte_hashes[simd_index];
-			let empty = find_leftmost_avx2(self.one_byte_hashes[simd_index], u8x32::splat(EMPTY)) as usize;
 
-			// println!("_find_hash_match_hash | self.one_byte_hashes[simd_index] {:?}", self.one_byte_hashes[simd_index]);
-			println!("_find_hash_match_hash | self.key_values {:?}", self.key_values);
-			// println!("_find_hash_match_hash | empty {}", empty);
+			// println!("_find_hash_match_hash | one_byte_simd {:?}", one_byte_simd);
+			// println!("_find_hash_match_hash | self.key_values {:?}", self.key_values);
 
-			let hash_match = find_leftmost_avx2(self.one_byte_hashes[simd_index], compare_hash) as usize;
-
+			let mut hash_match = find_leftmost_avx2(one_byte_simd, compare_hash) as usize;
 			// println!("_find_hash_match_hash | hash_match {}", hash_match);
 
-			if hash_match != u32::MAX as usize {
-				let key_index = simd_index * 32 + hash_match;
-				if *key == self.key_values[key_index].key {
-					return (key_index, true)
+			let empty = find_leftmost_avx2(one_byte_simd, u8x32::splat(EMPTY)) as usize;
+			// println!("_find_hash_match_hash | empty {}", empty);
+			if empty != u32::MAX as usize && empty < hash_match {
+				if simd_index * 32 + empty < self.key_values.len() {
+					break;
 				}
-				one_byte_simd[hash_match] = 0;
 			}
 
-			if empty != u32::MAX as usize {
-				let empty_index = simd_index * 32 + empty;
-				return (empty_index, false);
+			while hash_match != u32::MAX as usize && simd_index * 32 + hash_match < self.key_values.len()  {
+				let key_index = simd_index * 32 + hash_match;
+				// println!("_find_hash_match_hash | key {:?}", key);
+				// println!("_find_hash_match_hash | self.key_values[key_index].key {:?}", self.key_values[key_index].key);
+				if *key == self.key_values[key_index].key {
+					// println!("_find_hash_match_hash | Some");
+					return Some(key_index)
+				}
+				one_byte_simd[hash_match] = 0;
+				hash_match = find_leftmost_avx2(one_byte_simd, compare_hash) as usize;
 			}
 
 			index += next_stride;
@@ -154,18 +136,18 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			}
 			i += 1;
 		}
+	return None;
 	}
 
-	pub fn _find_empty_bucket_string(&self, key: &Vec<u8>) -> (usize, u64, bool) {
+	pub fn _find_empty_bucket_string(&self, key: &Vec<u8>) -> (usize, u64) {
 		let hash = hash_u8(key);
-		let (index, found) = self._find_empty_bucket_hash(key, hash);
-		(index, hash, found)
+		let index = self._find_empty_bucket_hash(key, hash);
+		(index, hash)
 	}
 
-	pub fn _find_hash_match_string(&self, key: &Vec<u8>) -> (usize, u64, bool) {
+	pub fn _find_hash_match_string(&self, key: &Vec<u8>) -> Option<usize> {
 		let hash = hash_u8(key);
-		let (index, found) = self._find_hash_match_hash(key, hash);
-		(index, hash, found)
+		self._find_hash_match_hash(key, hash)
 	}
 
 	pub fn _put_only(&mut self, key: Vec<u8>, value: V, hash: u64, index: usize) {
@@ -176,7 +158,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	}
 
 	pub fn put(&mut self, key: Vec<u8>, value: V) {
-		let (index, hash, _) = self._find_empty_bucket_string(&key);
+		let (index, hash) = self._find_empty_bucket_string(&key);
 		Self::_put_only(self, key, value, hash, index);
 
 		if self.load > (self.key_values.len() as f32 * self.load_factor) as usize {
@@ -190,16 +172,19 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	}
 
 	pub fn get(&self, key: &Vec<u8>) -> Option<V> {
-		let (index, _, found) = self._find_hash_match_string(&key);
-		found.then(|| self.key_values[index].value.clone())
+		let index = self._find_hash_match_string(&key);
+		index.and_then(|x| Some(self.key_values[x].value.clone()))
 	}
 
 	pub fn remove(&mut self, key: &Vec<u8>) {
-		let (index, _, found) = self._find_hash_match_string(&key);
-		if found {
-			self.one_byte_hashes[index / 32][index % 32] = TOMESTONE;
-			self.key_values[index] = KeyValue::default();
-			self.resize_hashes[index] = 0;
+		let index = self._find_hash_match_string(&key);
+		match index {
+			Some(i) => {
+				self.one_byte_hashes[i / 32][i % 32] = TOMESTONE;
+				self.key_values[i] = KeyValue::default();
+				self.resize_hashes[i] = 0;
+			}
+			_ => ()
 		}
 	}
 
@@ -222,14 +207,14 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 				old_one_byte_hashes[old_simd_index][next_occupied] = EMPTY;
 
 				let old_index = old_simd_index * 32 + next_occupied;
-				println!("_resize | old_simd_index {}", old_simd_index);
-				println!("_resize | next_occupied {}", next_occupied);
-				println!("_resize | old_one_byte_hashes[old_simd_index] {:?}", old_one_byte_hashes[old_simd_index]);
+				// println!("_resize | old_simd_index {}", old_simd_index);
+				// println!("_resize | next_occupied {}", next_occupied);
+				// println!("_resize | old_one_byte_hashes[old_simd_index] {:?}", old_one_byte_hashes[old_simd_index]);
 				let key = old_key_values[old_index].key.clone();
 				let value = old_key_values[old_index].value.clone();
 				let resize_hash = old_resize_hashes[old_index];
 
-				let (index, _) = self._find_empty_bucket_hash(&key, resize_hash);
+				let index = self._find_empty_bucket_hash(&key, resize_hash);
 				Self::_put_only(self, key, value, resize_hash, index);
 			}
 		}
@@ -299,7 +284,7 @@ mod tests {
 	#[test]
 	fn test_large_capacity() {
 		let mut keys = Vec::with_capacity(1_000);
-		for i in 1..1_000 {
+		for i in 100_000..101_000 {
 			keys.push(Vec::<u8>::from(format!("key{}", i)));
 		}
 		{
@@ -308,7 +293,6 @@ mod tests {
 			let mut map = NOSMap::<i32>::new(1);
 			for (i, key) in keys.clone().into_iter().enumerate() {
 				map.put(key.clone(), i as i32);
-				println!("test_large_capacity | {:?}", key);
 				assert_eq!(map.get(&key), Some(i as i32));
 			}
 
