@@ -190,6 +190,8 @@ print(f"Number of tries for a {probability * 100.0:.2f}% chance of collision wit
 - NOSMap is around 15% slower than the Rust hash map
 
 # 🧻🤣🤣🤣 References
+I learned new buzzwords to say. This is my name-dropping exercise. 😇
+
 [Faster than Rust and C++: the PERFECT hash table](https://youtu.be/DMQ_HcNSOAI)  
 [Array of structures (AoS) and structure of arrays (SoA)](https://en.wikipedia.org/wiki/AoS_and_SoA#Structure_of_arrays)  
 [Optimizing Open Addressing - thenumb.at](https://thenumb.at/Hashtables/)  

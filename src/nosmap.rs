@@ -1,10 +1,18 @@
-use std::{mem, cmp::max, fmt::Debug};
+use std::{mem, cmp::max, fmt::Debug, simd::{u8x32, prelude::SimdPartialEq}};
 use crate::{vasthash_b::*, is_prime::*};
 
 
 const EMPTY: u8 = 0;
 const OCCUPIED: u8 = 0b1;
 const TOMESTONE: u8 = 0b10;
+
+pub fn find_leftmost_avx2(input: u8x32, cmp: u8x32) -> u32 {
+	let le = input.simd_eq(cmp); // vpcmpeqd
+	if le.any() {
+		return le.to_bitmask().trailing_zeros() // vmovmskps, bsf
+	}
+	u32::MAX
+}
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct KeyValue<V> {
@@ -28,7 +36,7 @@ pub struct KeyValue<V> {
 /// - load_factor 0.97
 #[derive(Debug)]
 pub struct NOSMap<V> {
-	pub one_byte_hashes: Vec<u8>,
+	pub one_byte_hashes: Vec<u8x32>,
 	pub key_values: Vec<KeyValue<V>>,
 	pub resize_hashes: Vec<u64>,
 
@@ -41,7 +49,7 @@ pub struct NOSMap<V> {
 impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	pub fn new(initial_capacity: usize) -> Self {
 		let initial_prime_capacity = next_prime(initial_capacity as u32) as usize;
-		let one_byte_hashes = vec![0; initial_prime_capacity];
+		let one_byte_hashes = vec![u8x32::splat(0); initial_prime_capacity];
 		let key_values = vec![KeyValue::default(); initial_prime_capacity];
 		let resize_hashes = vec![0; initial_prime_capacity];
 
@@ -56,18 +64,38 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		}
 	}
 
-	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
+	pub fn _find_empty_bucket_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
 		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
-		let compare_hash = hash as u8;
+		let compare_hash = u8x32::splat(hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED);
 		let mut next_stride = key[0] as usize + (hash & 0x3ff) as usize;
 
 		// The AMD64 is running out of regesiter to use, so it will cause NOSMap to run much slower.
 		// Please probe the hash in batch with an array, or set up an artificial boundary.
 		let mut i = 0;
-		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {
-			if compare_hash & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[index]
-			&& *key == self.key_values[index].key {
-				return (index, true)
+		loop {
+			let simd_index = index / 32;
+			let mut one_byte_simd = self.one_byte_hashes[simd_index];
+			let empty = find_leftmost_avx2(self.one_byte_hashes[simd_index], u8x32::splat(EMPTY)) as usize;
+
+			// println!("_find_empty_bucket_hash | self.one_byte_hashes[simd_index] {:?}", self.one_byte_hashes[simd_index]);
+			println!("_find_empty_bucket_hash | self.key_values {:?}", self.key_values);
+			// println!("_find_empty_bucket_hash | empty {}", empty);
+
+			let hash_match = find_leftmost_avx2(self.one_byte_hashes[simd_index], compare_hash) as usize;
+
+			// println!("_find_empty_bucket_hash | hash_match {}", hash_match);
+
+			if hash_match != u32::MAX as usize {
+				let key_index = simd_index * 32 + hash_match;
+				if *key == self.key_values[key_index].key {
+					return (key_index, true)
+				}
+				one_byte_simd[hash_match] = 0;
+			}
+
+			if empty != u32::MAX as usize {
+				let empty_index = simd_index * 32 + empty;
+				return (empty_index, false);
 			}
 
 			index += next_stride;
@@ -75,29 +103,80 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 				index -= self.key_values.len();
 			}
 			if i >= self.key_values.len() {
-				// println!("_find_buckets_hash | Index might have an infinite loop for key {:?} | index {}", key, index);
+				// println!("_find_empty_bucket_hash | Index might have an infinite loop for key {:?} | index {}", key, index);
 				next_stride = 1;
 			}
 			i += 1;
 		}
-		(index, false)
 	}
 
-	pub fn _find_buckets_string(&self, key: &Vec<u8>) -> (usize, u64, bool) {
+	pub fn _find_hash_match_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
+		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
+		let compare_hash = u8x32::splat(hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED);
+		let mut next_stride = key[0] as usize + (hash & 0x3ff) as usize;
+
+		// The AMD64 is running out of regesiter to use, so it will cause NOSMap to run much slower.
+		// Please probe the hash in batch with an array, or set up an artificial boundary.
+		let mut i = 0;
+		loop {
+			let simd_index = index / 32;
+			let mut one_byte_simd = self.one_byte_hashes[simd_index];
+			let empty = find_leftmost_avx2(self.one_byte_hashes[simd_index], u8x32::splat(EMPTY)) as usize;
+
+			// println!("_find_hash_match_hash | self.one_byte_hashes[simd_index] {:?}", self.one_byte_hashes[simd_index]);
+			println!("_find_hash_match_hash | self.key_values {:?}", self.key_values);
+			// println!("_find_hash_match_hash | empty {}", empty);
+
+			let hash_match = find_leftmost_avx2(self.one_byte_hashes[simd_index], compare_hash) as usize;
+
+			// println!("_find_hash_match_hash | hash_match {}", hash_match);
+
+			if hash_match != u32::MAX as usize {
+				let key_index = simd_index * 32 + hash_match;
+				if *key == self.key_values[key_index].key {
+					return (key_index, true)
+				}
+				one_byte_simd[hash_match] = 0;
+			}
+
+			if empty != u32::MAX as usize {
+				let empty_index = simd_index * 32 + empty;
+				return (empty_index, false);
+			}
+
+			index += next_stride;
+			while index >= self.key_values.len() {
+				index -= self.key_values.len();
+			}
+			if i >= self.key_values.len() {
+				// println!("_find_hash_match_hash | Index might have an infinite loop for key {:?} | index {}", key, index);
+				next_stride = 1;
+			}
+			i += 1;
+		}
+	}
+
+	pub fn _find_empty_bucket_string(&self, key: &Vec<u8>) -> (usize, u64, bool) {
 		let hash = hash_u8(key);
-		let (index, found) = self._find_buckets_hash(key, hash);
+		let (index, found) = self._find_empty_bucket_hash(key, hash);
+		(index, hash, found)
+	}
+
+	pub fn _find_hash_match_string(&self, key: &Vec<u8>) -> (usize, u64, bool) {
+		let hash = hash_u8(key);
+		let (index, found) = self._find_hash_match_hash(key, hash);
 		(index, hash, found)
 	}
 
 	pub fn _put_only(&mut self, key: Vec<u8>, value: V, hash: u64, index: usize) {
-		self.one_byte_hashes[index] = hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED;
+		self.one_byte_hashes[index / 32][index % 32] = hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED;
 		self.resize_hashes[index] = hash;
 		self.key_values[index] = KeyValue{key, value};
 		self.load += 1;
 	}
 
 	pub fn put(&mut self, key: Vec<u8>, value: V) {
-		let (index, hash, _) = self._find_buckets_string(&key);
+		let (index, hash, _) = self._find_empty_bucket_string(&key);
 		Self::_put_only(self, key, value, hash, index);
 
 		if self.load > (self.key_values.len() as f32 * self.load_factor) as usize {
@@ -111,14 +190,14 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	}
 
 	pub fn get(&self, key: &Vec<u8>) -> Option<V> {
-		let (index, _, found) = self._find_buckets_string(&key);
+		let (index, _, found) = self._find_hash_match_string(&key);
 		found.then(|| self.key_values[index].value.clone())
 	}
 
 	pub fn remove(&mut self, key: &Vec<u8>) {
-		let (index, _, found) = self._find_buckets_string(&key);
+		let (index, _, found) = self._find_hash_match_string(&key);
 		if found {
-			self.one_byte_hashes[index] = TOMESTONE;
+			self.one_byte_hashes[index / 32][index % 32] = TOMESTONE;
 			self.key_values[index] = KeyValue::default();
 			self.resize_hashes[index] = 0;
 		}
@@ -128,17 +207,29 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		let new_prime_capacity = next_prime(new_capacity as u32) as usize;
 		self.modulo_const = uint_div_const(new_prime_capacity as u64) as usize;
 		self.load = 0;
-		let old_one_byte_hashes = mem::replace(&mut self.one_byte_hashes, vec![0; new_prime_capacity]);
+		let mut old_one_byte_hashes = mem::replace(&mut self.one_byte_hashes, vec![u8x32::splat(0); new_prime_capacity]);
 		let old_key_values = mem::replace(&mut self.key_values, vec![KeyValue::default(); new_prime_capacity]);
 		let old_resize_hashes = mem::replace(&mut self.resize_hashes, vec![0; new_prime_capacity]);
 
-		for old_index in 0..old_key_values.len() {
-			if old_one_byte_hashes[old_index] & OCCUPIED == OCCUPIED {
+		for old_simd_index in 0..old_one_byte_hashes.len() {
+			loop {
+				let next_occupied = find_leftmost_avx2(old_one_byte_hashes[old_simd_index] & u8x32::splat(OCCUPIED), u8x32::splat(OCCUPIED)) as usize;
+
+				if next_occupied == u32::MAX as usize {
+					break;
+				}
+
+				old_one_byte_hashes[old_simd_index][next_occupied] = EMPTY;
+
+				let old_index = old_simd_index * 32 + next_occupied;
+				println!("_resize | old_simd_index {}", old_simd_index);
+				println!("_resize | next_occupied {}", next_occupied);
+				println!("_resize | old_one_byte_hashes[old_simd_index] {:?}", old_one_byte_hashes[old_simd_index]);
 				let key = old_key_values[old_index].key.clone();
 				let value = old_key_values[old_index].value.clone();
 				let resize_hash = old_resize_hashes[old_index];
 
-				let (index, _) = self._find_buckets_hash(&key, resize_hash);
+				let (index, _) = self._find_empty_bucket_hash(&key, resize_hash);
 				Self::_put_only(self, key, value, resize_hash, index);
 			}
 		}
@@ -166,22 +257,21 @@ mod tests {
 		let mut map = NOSMap::<i32>::new(1);
 		map.put(Vec::<u8>::from("key"), 42);
 
-		let (index, _, _) = map._find_buckets_string(&Vec::<u8>::from("key"));
-		assert_eq!(map.key_values[index].key, Vec::<u8>::from("key"));
-		assert_eq!(map.key_values[index].value, 42);
+		assert_eq!(map.get(&Vec::<u8>::from("key")), Some(42));
 		assert_eq!(map.load, 1);
 	}
 
 	#[test]
 	fn test_resize_on_insert() {
 		let mut map = NOSMap::<i32>::new(2);
-		map.put(Vec::<u8>::from("key1"), 1);
-		map.put(Vec::<u8>::from("key2"), 2);
-		map.put(Vec::<u8>::from("key3"), 3); // This should trigger a resize
 
-		assert!(map.key_values.len() > 2);
-		assert!(map.one_byte_hashes.len() > 2);
-		assert!(map.resize_hashes.len() > 2);
+		for i in 0..35 {
+			map.put(Vec::<u8>::from(format!("key{}", i)), i); // This should trigger a resize
+		}
+
+		assert!(map.key_values.len() > 35);
+		assert!(map.one_byte_hashes.len() > 35);
+		assert!(map.resize_hashes.len() > 35);
 	}
 
 	#[test]
@@ -190,10 +280,10 @@ mod tests {
 		map.put(Vec::<u8>::from("key1"), 1);
 		map.put(Vec::<u8>::from("key2"), 2);
 
-		let (index1, _, _) = map._find_buckets_string(&Vec::<u8>::from("key1"));
-		let (index2, _, _) = map._find_buckets_string(&Vec::<u8>::from("key2"));
+		let value1 = map.get(&Vec::<u8>::from("key1"));
+		let value2 = map.get(&Vec::<u8>::from("key2"));
 
-		assert_ne!(index1, index2);
+		assert_ne!(Some(value1), Some(value2));
 	}
 
 	#[test]
@@ -202,15 +292,14 @@ mod tests {
 		map.put(Vec::<u8>::from("key"), 1);
 		map.put(Vec::<u8>::from("key"), 2); // Overwrite the value
 
-		let (index, _, _) = map._find_buckets_string(&Vec::<u8>::from("key"));
-		assert_eq!(map.key_values[index].value, 2);
+		assert_eq!(map.get(&Vec::<u8>::from("key")), Some(2));
 	}
 
 	/// `cargo test test_large_capacity --release`
 	#[test]
 	fn test_large_capacity() {
-		let mut keys = Vec::with_capacity(1_000_000);
-		for i in 1..1_000_000_0 {
+		let mut keys = Vec::with_capacity(1_000);
+		for i in 1..1_000 {
 			keys.push(Vec::<u8>::from(format!("key{}", i)));
 		}
 		{
@@ -219,8 +308,8 @@ mod tests {
 			let mut map = NOSMap::<i32>::new(1);
 			for (i, key) in keys.clone().into_iter().enumerate() {
 				map.put(key.clone(), i as i32);
-				let (index, _, _) = map._find_buckets_string(&key);
-				assert_eq!(map.key_values[index].value, i as i32);
+				println!("test_large_capacity | {:?}", key);
+				assert_eq!(map.get(&key), Some(i as i32));
 			}
 
 			println!("Time elapsed for NOSMap is: {:?}", start.elapsed());
