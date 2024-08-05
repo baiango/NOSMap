@@ -55,7 +55,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			resize_hashes,
 			load: 0,
 			grow_size: 5.05,
-			load_factor: 0.97,
+			load_factor: 0.9999,
 			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize
 		}
 	}
@@ -67,10 +67,11 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		let mut i = 0;
 		loop {
 			let simd_index = index / 32;
+			let rounded_index = simd_index * 32;
 			let empty = find_leftmost_avx2(&self.one_byte_hashes[simd_index], &u8x32::splat(EMPTY)) as usize;
 
-			if simd_index * 32 + empty < self.key_values.len() {
-				return simd_index * 32 + empty;
+			if empty != 64 && rounded_index + empty < self.key_values.len() {
+				return rounded_index + empty;
 			}
 
 			index += next_stride;
@@ -93,22 +94,26 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		let mut i = 0;
 		loop {
 			let simd_index = index / 32;
+			let rounded_index = simd_index * 32;
 			let mut one_byte_simd = self.one_byte_hashes[simd_index];
 
-			let mut hash_match = find_leftmost_avx2(&one_byte_simd, &compare_hash) as usize;
-			let empty = find_leftmost_avx2(&one_byte_simd, &u8x32::splat(EMPTY)) as usize;
+			loop {
+				let hash_match = find_leftmost_avx2(&one_byte_simd, &compare_hash) as usize;
+				let empty = find_leftmost_avx2(&one_byte_simd, &u8x32::splat(EMPTY)) as usize;
+				if hash_match == 64 {
+					break;
+				}
+				one_byte_simd[hash_match] = TOMESTONE;
 
-			if empty < hash_match && simd_index * 32 + empty < self.key_values.len() {
-				break;
-			}
-
-			while simd_index * 32 + hash_match < self.key_values.len()  {
-				let key_index = simd_index * 32 + hash_match;
-				if hash == self.resize_hashes[key_index] && *key == self.key_values[key_index].key {
+				let key_index = rounded_index + hash_match;
+				if hash == self.resize_hashes[key_index]
+				&& *key == self.key_values[key_index].key {
 					return Some(key_index)
 				}
-				one_byte_simd[hash_match] = 0;
-				hash_match = find_leftmost_avx2(&one_byte_simd, &compare_hash) as usize;
+
+				if empty <= hash_match {
+					return None;
+				}
 			}
 
 			index += next_stride;
@@ -121,7 +126,6 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			}
 			i += 1;
 		}
-	return None;
 	}
 
 	pub fn _find_empty_bucket_string(&self, key: &Vec<u8>) -> (usize, u64) {
