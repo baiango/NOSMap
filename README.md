@@ -153,7 +153,7 @@ fn main() {
 ```
 
 # 🎇🎆 Gain
-- High correctness and reliability - NOSMap's features are minimal and battle-tested with passwords
+- High correctness and reliability - NOSMap's features are minimal and battle-fuzz tested with passwords
 	- [Top304Thousand-probable-v2.txt](https://weakpass.com/wordlist/1859)
 	- [hk_hlm_founds.txt](https://weakpass.com/wordlist/1256)
 - Possibly read-only concurrent hash map with write lock
@@ -162,7 +162,7 @@ fn main() {
 - NOSMap will drain [hash flooding attacks](https://en.wikipedia.org/wiki/Collision_attack) until memory has exhausted
 	- To collide with NOSMap's key and force a full key check, the first byte of the character and hash must match with another first byte of key and hash. Otherwise, NOSMap will rejects flooding attacks with a single hash byte check only. But, it's harder to exploit bucket collisions than to simply overload NOSMap with unique keys because the NOSMap's probing mechanism is dependent on the hash function used and the key. VashHash-b, which sums keys via AVX2, it's very unsecure but fast.
 	- A 50% chance of a successful brute force attack to a compromised hash function requires 301.42 attempts, and each additional collision needs another 301.42 trials. With a blind brute force, the difficulty increases significantly from 16-bit (501.42 tries) to 64-bit (5056937540.69 tries).
-	- You can tweak VashHash-b a little and NOSMap's linear probing will happily obfuscate VashHash-b, so, no one would know how to flood NOSMap without the source code.
+	- You can tweak VashHash-b a little and NOSMap's dynamic linear probing will happily obfuscate VashHash-b, so, no one would know how to flood NOSMap without the source code.
 
 **Bucket collisions mathematical proof**
 ```py
@@ -187,7 +187,8 @@ print(f"Number of tries for a {probability * 100.0:.2f}% chance of collision wit
 # 🚤🔥 Drawbacks - Reason
 - Written in Rust instead of C - My skill issues 😭😭😭 ("I cannot fix `void *` from SIGSEGV in C.")
 - Need a decompiler to read the code 🗿🙄👽
-- NOSMap is around 15% slower than the Rust hash map
+- 15% slower than the Rust hash map
+- Hard to debug even in Rust - Borderline nondeterministic dynamic linear probing mechanism
 
 # 🧻🤣🤣🤣 References
 I learned new buzzwords to say. This is my name-dropping exercise. 😇
@@ -216,11 +217,11 @@ pub struct NOSMap<V> {
 }
 ```
 
-The key will be hashed by VastHash-b, then uses the first byte of the byte as dynamic hashing to decide the next index for linear probe to find an empty bucket when keys are collided, and insert into a bucket.
+The key will be hashed by VastHash-b, then uses the first byte of the byte as dynamic hashing to decide the next index for dynamic linear probe to find an empty bucket when keys are collided, and insert into a bucket.
 
 VastHash-b takes a `&[u64x4]` and summing it up. The distribution quality of VastHash-b was better than DJB2, but excels most algorithm with prime-sized vector.
 
-The dynamic hashing is designed to be resistant to clustering than linear probing because NOSMap drank a fire-resistant potion 🧪. And the shorter travel of it provides higher spatial locality than double hashing. The dependency on keys and hash functions made it outdo on collision avoidance and unpredictability, so NOSMap can handle over 95% of loads without slowing down. It creates obfuscation on the hash function by mixing with the hash in the probing index along with the key.
+The dynamic hashing is designed to be resistant to clustering than dynamic linear probing because NOSMap drank a fire-resistant potion 🧪. And the shorter travel of it provides higher spatial lwocality than double hashing. The dependency on keys and hash functions made it outdo on collision avoidance and unpredictability, so NOSMap can handle over 95% of loads without slowing down. It creates obfuscation on the hash function by mixing with the hash in the probing index along with the key.
 
 # 🧁🎈 A simplified architecture of NOSMap
 ```py
