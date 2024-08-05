@@ -22,7 +22,7 @@ pub fn hash_u8(input_data: &[u8]) -> u64 {
 	let full_chunks = len / 32;
 
 	for i in 0..full_chunks {
-		let start = i << 5;
+		let start = i * 32;
 		let end = start + 32;
 		let chunk = &input_data[start..end];
 		let data = u64x4::from_le_bytes(chunk.try_into().unwrap());

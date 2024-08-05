@@ -220,7 +220,7 @@ The key will be hashed by VastHash-b, then uses the first byte of the byte as dy
 
 VastHash-b takes a `&[u64x4]` and summing it up. The distribution quality of VastHash-b was better than DJB2, but excels most algorithm with prime-sized vector.
 
-The dynamic hashing is designed to be resistant to clustering than linear probing, and the shorter travel of it provides higher spatial locality than double hashing.
+The dynamic hashing is designed to be resistant to clustering than linear probing because NOSMap drank a fire-resistant potion 🧪. And the shorter travel of it provides higher spatial locality than double hashing. The dependency on keys and hash functions made it outdo on collision avoidance and unpredictability, so NOSMap can handle over 95% of loads without slowing down. It creates obfuscation on the hash function by mixing with the hash in the probing index along with the key.
 
 # 🧁🎈 A simplified architecture of NOSMap
 ```py

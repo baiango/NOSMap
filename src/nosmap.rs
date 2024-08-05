@@ -6,8 +6,8 @@ const EMPTY: u8 = 0;
 const OCCUPIED: u8 = 0b1;
 const TOMESTONE: u8 = 0b10;
 
-pub fn find_leftmost_avx2(input: u8x32, cmp: u8x32) -> u32 {
-	input.simd_eq(cmp).to_bitmask().trailing_zeros() // vpcmpeqd, vmovmskps, bsf
+pub fn find_leftmost_avx2(input: &u8x32, cmp: &u8x32) -> u32 {
+	input.simd_eq(*cmp).to_bitmask().trailing_zeros() // vpcmpeqd, vmovmskps, bsf
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -64,17 +64,13 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
 		let mut next_stride = key[0] as usize + (hash & 0x3ff) as usize;
 
-		// The AMD64 is running out of regesiter to use, so it will cause NOSMap to run much slower.
-		// Please probe the hash in batch with an array, or set up an artificial boundary.
 		let mut i = 0;
 		loop {
 			let simd_index = index / 32;
-			let empty = find_leftmost_avx2(self.one_byte_hashes[simd_index], u8x32::splat(EMPTY)) as usize;
+			let empty = find_leftmost_avx2(&self.one_byte_hashes[simd_index], &u8x32::splat(EMPTY)) as usize;
 
-			if empty != u32::MAX as usize {
-				if simd_index * 32 + empty < self.key_values.len() {
-					return simd_index * 32 + empty;
-				}
+			if simd_index * 32 + empty < self.key_values.len() {
+				return simd_index * 32 + empty;
 			}
 
 			index += next_stride;
@@ -83,7 +79,6 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			}
 			if i >= self.key_values.len() {
 				// println!("_find_empty_bucket_hash | Index might have an infinite loop for key {:?} | index {}", key, index);
-				// println!("_find_empty_bucket_hash | self.key_values {:?}", self.key_values);
 				next_stride = 1;
 			}
 			i += 1;
@@ -100,30 +95,20 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			let simd_index = index / 32;
 			let mut one_byte_simd = self.one_byte_hashes[simd_index];
 
-			// println!("_find_hash_match_hash | one_byte_simd {:?}", one_byte_simd);
-			// println!("_find_hash_match_hash | self.key_values {:?}", self.key_values);
+			let mut hash_match = find_leftmost_avx2(&one_byte_simd, &compare_hash) as usize;
+			let empty = find_leftmost_avx2(&one_byte_simd, &u8x32::splat(EMPTY)) as usize;
 
-			let mut hash_match = find_leftmost_avx2(one_byte_simd, compare_hash) as usize;
-			// println!("_find_hash_match_hash | hash_match {}", hash_match);
-
-			let empty = find_leftmost_avx2(one_byte_simd, u8x32::splat(EMPTY)) as usize;
-			// println!("_find_hash_match_hash | empty {}", empty);
-			if empty != u32::MAX as usize && empty < hash_match {
-				if simd_index * 32 + empty < self.key_values.len() {
-					break;
-				}
+			if empty < hash_match && simd_index * 32 + empty < self.key_values.len() {
+				break;
 			}
 
-			while hash_match != u32::MAX as usize && simd_index * 32 + hash_match < self.key_values.len()  {
+			while simd_index * 32 + hash_match < self.key_values.len()  {
 				let key_index = simd_index * 32 + hash_match;
-				// println!("_find_hash_match_hash | key {:?}", key);
-				// println!("_find_hash_match_hash | self.key_values[key_index].key {:?}", self.key_values[key_index].key);
-				if *key == self.key_values[key_index].key {
-					// println!("_find_hash_match_hash | Some");
+				if hash == self.resize_hashes[key_index] && *key == self.key_values[key_index].key {
 					return Some(key_index)
 				}
 				one_byte_simd[hash_match] = 0;
-				hash_match = find_leftmost_avx2(one_byte_simd, compare_hash) as usize;
+				hash_match = find_leftmost_avx2(&one_byte_simd, &compare_hash) as usize;
 			}
 
 			index += next_stride;
@@ -198,18 +183,16 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 
 		for old_simd_index in 0..old_one_byte_hashes.len() {
 			loop {
-				let next_occupied = find_leftmost_avx2(old_one_byte_hashes[old_simd_index] & u8x32::splat(OCCUPIED), u8x32::splat(OCCUPIED)) as usize;
+				let next_occupied = find_leftmost_avx2(&(old_one_byte_hashes[old_simd_index] & u8x32::splat(OCCUPIED)), &u8x32::splat(OCCUPIED)) as usize;
 
-				if next_occupied == u32::MAX as usize {
+				const NOT_FOUND: usize = 64;
+				if next_occupied == NOT_FOUND {
 					break;
 				}
 
 				old_one_byte_hashes[old_simd_index][next_occupied] = EMPTY;
 
 				let old_index = old_simd_index * 32 + next_occupied;
-				// println!("_resize | old_simd_index {}", old_simd_index);
-				// println!("_resize | next_occupied {}", next_occupied);
-				// println!("_resize | old_one_byte_hashes[old_simd_index] {:?}", old_one_byte_hashes[old_simd_index]);
 				let key = old_key_values[old_index].key.clone();
 				let value = old_key_values[old_index].value.clone();
 				let resize_hash = old_resize_hashes[old_index];
