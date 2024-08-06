@@ -99,7 +99,7 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize
 	{
 		let start = Instant::now();
 
-		let capacity = (test_capacity as f32 / 0.989).ceil() as usize;
+		let capacity = (test_capacity as f32 / 0.9989).ceil() as usize;
 		let mut map = NOSMap::<i32>::new(capacity);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.put(key.clone(), i as i32);
@@ -121,7 +121,7 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize
 			map.get(&Vec::<u8>::from(format!("key{}", i)));
 		}
 
-		println!("Time elapsed for NOSMap is: {:?} | key size {} | get missing size {} | capacity {}", start.elapsed(), keys.len(), get_missing_size, capacity);
+		println!("Time elapsed for NOSMap is: {:?} | key size {} | get missing size {} ({:.2}%) | capacity {} ({:.2}%)", start.elapsed(), keys.len(), get_missing_size, keys.len() as f32 / get_missing_size as f32, capacity, keys.len() as f32 / capacity as f32 * 100.0);
 	}
 	{
 		let start = Instant::now();
@@ -148,7 +148,7 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize
 			map.get(&Vec::<u8>::from(format!("key{}", i)));
 		}
 
-		println!("Time elapsed for HashMap is: {:?} | key size {} | get missing size {} | capacity {}", start.elapsed(), keys.len(), get_missing_size, capacity);
+		println!("Time elapsed for HashMap is: {:?} | key size {} | get missing size {} ({:.2}%) | capacity {} ({:.2}%)", start.elapsed(), keys.len(), get_missing_size, keys.len() as f32 / get_missing_size as f32, capacity, keys.len() as f32 / capacity as f32 * 100.0);
 	}
 }
 ```
@@ -202,6 +202,9 @@ I learned new buzzwords to say. This is my name-dropping exercise. 😇
 [C++Now 2018: You Can Do Better than std::unordered_map: New Improvements to Hash Table Performance](https://youtu.be/M2fKMP47slQ)  
 [CppCon 2016: Timur Doumler “Want fast C++? Know your hardware!"](https://youtu.be/BP6NxVxDQIs)  
 [dendibakh/perf-book](https://github.com/dendibakh/perf-book)  
+[Big O myths busted! (Time complexity is complicated)](https://youtu.be/7VHG6Y2QmtM)  
+[Understanding B-Trees: The Data Structure Behind Modern Databases](https://youtu.be/K1a2Bk8NrYQ)  
+[computers suck at division (a painful discovery)](https://youtu.be/ssDBqQ5f5_0)  
 
 # #️⃣😴😴😴 Architecture high-level overview
 NOSMap was inspired by GPref's design, which is adding 2 bytes together and use it as a hash to find new buckets.
@@ -222,9 +225,9 @@ pub struct NOSMap<V> {
 
 The key will be hashed by VastHash-b, then uses the first byte of the byte as dynamic hashing to decide the next index for dynamic linear probe to find an empty bucket when keys are collided, and insert into a bucket.
 
-VastHash-b takes a `&[u64x4]` and summing it up. The distribution quality of VastHash-b was better than DJB2, but excels most algorithm with prime-sized vector.
+VastHash-b takes a `&[u64x4]` and summing it up. The distribution quality of VastHash-b was better than DJB2, but excels most algorithms with prime-sized vector.
 
-The dynamic hashing is designed to be resistant to clustering than dynamic linear probing because NOSMap drank a fire-resistant potion 🧪. And the shorter travel of it provides higher spatial lwocality than double hashing. The dependency on keys and hash functions made it outdo on collision avoidance and unpredictability, so NOSMap can handle over 95% of loads without slowing down. It creates obfuscation on the hash function by mixing with the hash in the probing index along with the key.
+The dynamic hashing is designed to be resistant to clustering than dynamic linear probing because NOSMap drank a fire-resistant potion 🧪. And the shorter travel of it provides higher spatial locality than double hashing. The dependency on keys and hash functions made it outdo on collision avoidance and unpredictability, so NOSMap can handle over 95% of loads without slowing down. It creates obfuscation on the hash function by mixing with the hash in the probing index along with the key.
 
 # 🧁🎈 A simplified architecture of NOSMap
 ```py
@@ -237,7 +240,7 @@ class NOSMap:
 
 	def _find_bucket(self, key):
 		index = hash(key) % self.capacity
-		next_stride = (ord(key[0]) + ord(key[-1])) * 2 + 1
+		next_stride = (ord(key[0]) + (index & 0x3ff)) * 2 + 1
 
 		while self.buckets[index] != None:
 			if self.buckets[index][0] == key:
