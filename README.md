@@ -8,70 +8,101 @@ NOSMap was designed for to end the users' search for the next fastest Hashmap on
 NOSMap will also ace most of the section on benchmarks from people; only if you can compile it, and the chance is 100.0% on AVX2 system because of the ease of the Rust installation.
 
 # 🫠🌪️🏳️ Performance
-I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash map. I will declare defeat. I am done with this hash map.
+I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash map. I will declare defeat. I am done with this hash map. 😭🙇‍♀️
 
 | Scenario | Map Type | Key Size | Missing Size (Percentage) | Initial Capacity | Time Elapsed (ms/s) |
 |---|---|---|---|---|---|
-| **Preallocated w/o missing** | NOSMap | 1,000,000 | 0 (inf%) | 1,001,102 (99.89%) | 640.7332 ms |
-|  | HashMap | 1,000,000 | 0 (inf%) | 1,144,165 (87.40%) | 399.6438 ms |
-|  | NOSMap | 10,000,000 | 0 (inf%) | 10,011,012 (99.89%) | 6.9721599 s |
-|  | HashMap | 10,000,000 | 0 (inf%) | 11,441,647 (87.40%) | 5.5180007 s |
-|  | NOSMap | 303,872 | 0 (inf%) | 304,207 (99.89%) | 130.4601 ms |
-|  | HashMap | 303,872 | 0 (inf%) | 347,680 (87.40%) | 114.8022 ms |
-| **Preallocated w/ missing** | NOSMap | 1,000,000 | 125,000 (8.00%) | 1,001,102 (99.89%) | 702.0693 ms |
-|  | HashMap | 1,000,000 | 125,000 (8.00%) | 1,144,165 (87.40%) | 434.22 ms |
-|  | NOSMap | 10,000,000 | 1,250,000 (8.00%) | 10,011,012 (99.89%) | 7.2867382 s |
-|  | HashMap | 10,000,000 | 1,250,000 (8.00%) | 11,441,647 (87.40%) | 5.7745234 s |
-|  | NOSMap | 303,872 | 37,984 (8.00%) | 304,207 (99.89%) | 2.7460905 s |
-|  | HashMap | 303,872 | 37,984 (8.00%) | 347,680 (87.40%) | 120.1809 ms |
-| **Resizing w/o missing** | NOSMap | 1,000,000 | 0 (inf%) | 0 (inf%) | 445.2367 ms |
-|  | HashMap | 1,000,000 | 0 (inf%) | 0 (inf%) | 540.8554 ms |
-|  | NOSMap | 10,000,000 | 0 (inf%) | 0 (inf%) | 5.0915601 s |
-|  | HashMap | 10,000,000 | 0 (inf%) | 0 (inf%) | 6.7179596 s |
-|  | NOSMap | 303,872 | 0 (inf%) | 0 (inf%) | 204.7688 ms |
-|  | HashMap | 303,872 | 0 (inf%) | 0 (inf%) | 135.0235 ms |
-| **Resizing w/ missing** | NOSMap | 1,000,000 | 125,000 (8.00%) | 0 (inf%) | 503.0182 ms |
-|  | HashMap | 1,000,000 | 125,000 (8.00%) | 0 (inf%) | 587.1675 ms |
-|  | NOSMap | 10,000,000 | 1,250,000 (8.00%) | 0 (inf%) | 5.5197976 s |
-|  | HashMap | 10,000,000 | 1,250,000 (8.00%) | 0 (inf%) | 7.3583459 s |
-|  | NOSMap | 303,872 | 37,984 (8.00%) | 0 (inf%) | 211.3901 ms |
-|  | HashMap | 303,872 | 37,984 (8.00%) | 0 (inf%) | 143.6554 ms |
+| **Preallocated w/o missing** | NOSMap | 1000000 | 0 (0.00%) | 1001102 (99.89%) | 643.9751ms
+| | HashMap | 1000000 | 0 (0.00%) | 1144165 (87.40%) | 367.0978ms
+| | NOSMap | 10000000 | 0 (0.00%) | 10011012 (99.89%) | 6.9044502s
+| | HashMap | 10000000 | 0 (0.00%) | 11441647 (87.40%) | 5.1444732s
+| | NOSMap | 80000000 | 0 (0.00%) | 80088096 (99.89%) | 205.6192116s
+| | HashMap | 80000000 | 0 (0.00%) | 91533176 (87.40%) | 53.5207945s
+| | NOSMap | [303872](https://weakpass.com/wordlist/1859) | 0 (0.00%) | 304207 (99.89%) | 173.1047ms
+| | HashMap | [303872](https://weakpass.com/wordlist/1859) | 0 (0.00%) | 347680 (87.40%) | 104.6524ms
+| | NOSMap | [38647798](https://weakpass.com/wordlist/1256) | 0 (0.00%) | 38690360 (99.89%) | 120.2457072s
+| | HashMap | [38647798](https://weakpass.com/wordlist/1256) | 0 (0.00%) | 44219452 (87.40%) | 31.3383805s
+| **Preallocated w/ missing** | NOSMap | 1000000 | 125000 (12.50%) | 1001102 (99.89%) | 681.8579ms
+| | HashMap | 1000000 | 125000 (12.50%) | 1144165 (87.40%) | 421.4585ms
+| | NOSMap | 10000000 | 1250000 (12.50%) | 10011012 (99.89%) | 9.4380203s
+| | HashMap | 10000000 | 1250000 (12.50%) | 11441647 (87.40%) | 6.4654762s
+| | NOSMap | 80000000 | 10000000 (12.50%) | 80088096 (99.89%) | 218.7643619s
+| | HashMap | 80000000 | 10000000 (12.50%) | 91533176 (87.40%) | 66.380596s
+| | NOSMap | [303872](https://weakpass.com/wordlist/1859) | 37984 (12.50%) | 304207 (99.89%) | 2.83666s
+| | HashMap | [303872](https://weakpass.com/wordlist/1859) | 37984 (12.50%) | 347680 (87.40%) | 112.8536ms
+| | NOSMap | [38647798](https://weakpass.com/wordlist/1256) | 386 (0.00%) | 38690360 (99.89%) | 134.2869561s
+| | HashMap | [38647798](https://weakpass.com/wordlist/1256) | 386 (0.00%) | 44219452 (87.40%) | 40.2543792s
+| **Resizing w/o missing** | NOSMap | 1000000 | 0 (0.00%) | 0 (inf%) | 436.3151ms
+| | HashMap | 1000000 | 0 (0.00%) | 0 (inf%) | 557.3059ms
+| | NOSMap | 10000000 | 0 (0.00%) | 0 (inf%) | 9.1041956s
+| | HashMap | 10000000 | 0 (0.00%) | 0 (inf%) | 7.8982911s
+| | NOSMap | 80000000 | 0 (0.00%) | 0 (inf%) | 63.020101s
+| | HashMap | 80000000 | 0 (0.00%) | 0 (inf%) | 80.0118641s
+| | NOSMap | [303872](https://weakpass.com/wordlist/1859) | 0 (0.00%) | 0 (inf%) | 200.1249ms
+| | HashMap | [303872](https://weakpass.com/wordlist/1859) | 0 (0.00%) | 0 (inf%) | 133.9257ms
+| | NOSMap | [38647798](https://weakpass.com/wordlist/1256) | 0 (0.00%) | 0 (inf%) | 75.9037819s
+| | HashMap | [38647798](https://weakpass.com/wordlist/1256) | 0 (0.00%) | 0 (inf%) | 46.4104112s
+| **Resizing w/ missing** | NOSMap | 1000000 | 10000 (1.00%) | 0 (inf%) | 472.4232ms
+| | HashMap | 1000000 | 10000 (1.00%) | 0 (inf%) | 538.1744ms
+| | NOSMap | 10000000 | 100000 (1.00%) | 0 (inf%) | 9.2910668s
+| | HashMap | 10000000 | 100000 (1.00%) | 0 (inf%) | 8.0348904s
+| | NOSMap | 80000000 | 800000 (1.00%) | 0 (inf%) | 60.6304244s
+| | HashMap | 80000000 | 800000 (1.00%) | 0 (inf%) | 82.1701226s
+| | NOSMap | [303872](https://weakpass.com/wordlist/1859) | 3038 (1.00%) | 0 (inf%) | 214.6126ms
+| | HashMap | [303872](https://weakpass.com/wordlist/1859) | 3038 (1.00%) | 0 (inf%) | 135.4813ms
+| | NOSMap | [38647798](https://weakpass.com/wordlist/1256) | 386 (0.00%) | 0 (inf%) | 78.2482301s
+| | HashMap | [38647798](https://weakpass.com/wordlist/1256) | 386 (0.00%) | 0 (inf%) | 48.0270358s
 
 **Running command:**
 ```
 cargo r --release
 ```
 
-**Benchmark output:**
+**Raw benchmark output:**
 ```
----------- Preallocated w/o missing ----------
-Time elapsed for NOSMap is: 640.7332ms | key size 1000000 | get missing size 0 (inf%) | capacity 1001102 (99.89%)
-Time elapsed for HashMap is: 399.6438ms | key size 1000000 | get missing size 0 (inf%) | capacity 1144165 (87.40%)
-Time elapsed for NOSMap is: 6.9721599s | key size 10000000 | get missing size 0 (inf%) | capacity 10011012 (99.89%)
-Time elapsed for HashMap is: 5.5180007s | key size 10000000 | get missing size 0 (inf%) | capacity 11441647 (87.40%)
-Time elapsed for NOSMap is: 130.4601ms | key size 303872 | get missing size 0 (inf%) | capacity 304207 (99.89%)
-Time elapsed for HashMap is: 114.8022ms | key size 303872 | get missing size 0 (inf%) | capacity 347680 (87.40%)
----------- Preallocated w/ missing ----------
-Time elapsed for NOSMap is: 702.0693ms | key size 1000000 | get missing size 125000 (8.00%) | capacity 1001102 (99.89%)
-Time elapsed for HashMap is: 434.22ms | key size 1000000 | get missing size 125000 (8.00%) | capacity 1144165 (87.40%)
-Time elapsed for NOSMap is: 7.2867382s | key size 10000000 | get missing size 1250000 (8.00%) | capacity 10011012 (99.89%)
-Time elapsed for HashMap is: 5.7745234s | key size 10000000 | get missing size 1250000 (8.00%) | capacity 11441647 (87.40%)
-Time elapsed for NOSMap is: 2.7460905s | key size 303872 | get missing size 37984 (8.00%) | capacity 304207 (99.89%)
-Time elapsed for HashMap is: 120.1809ms | key size 303872 | get missing size 37984 (8.00%) | capacity 347680 (87.40%)
----------- Resizing w/o missing ----------
-Time elapsed for NOSMap is: 445.2367ms | key size 1000000 | get missing size 0 (inf%) | capacity 0 (inf%)
-Time elapsed for HashMap is: 540.8554ms | key size 1000000 | get missing size 0 (inf%) | capacity 0 (inf%)
-Time elapsed for NOSMap is: 5.0915601s | key size 10000000 | get missing size 0 (inf%) | capacity 0 (inf%)
-Time elapsed for HashMap is: 6.7179596s | key size 10000000 | get missing size 0 (inf%) | capacity 0 (inf%)
-Time elapsed for NOSMap is: 204.7688ms | key size 303872 | get missing size 0 (inf%) | capacity 0 (inf%)
-Time elapsed for HashMap is: 135.0235ms | key size 303872 | get missing size 0 (inf%) | capacity 0 (inf%)
----------- Resizing w/ missing ----------
-Time elapsed for NOSMap is: 503.0182ms | key size 1000000 | get missing size 125000 (8.00%) | capacity 0 (inf%)
-Time elapsed for HashMap is: 587.1675ms | key size 1000000 | get missing size 125000 (8.00%) | capacity 0 (inf%)
-Time elapsed for NOSMap is: 5.5197976s | key size 10000000 | get missing size 1250000 (8.00%) | capacity 0 (inf%)
-Time elapsed for HashMap is: 7.3583459s | key size 10000000 | get missing size 1250000 (8.00%) | capacity 0 (inf%)
-Time elapsed for NOSMap is: 211.3901ms | key size 303872 | get missing size 37984 (8.00%) | capacity 0 (inf%)
-Time elapsed for HashMap is: 143.6554ms | key size 303872 | get missing size 37984 (8.00%) | capacity 0 (inf%)
+---------- Loading file ----------
+| Scenario | Map Type | Key Size | Missing Size (Percentage) | Initial Capacity | Time Elapsed (ms/s) |
+|---|---|---|---|---|---|
+| **Preallocated w/o missing** | NOSMap | 1000000 | 0 (0.00%) | 1001102 (99.89%) | 643.9751ms
+| HashMap | 1000000 | 0 (0.00%) | 1144165 (87.40%) | 367.0978ms
+| NOSMap | 10000000 | 0 (0.00%) | 10011012 (99.89%) | 6.9044502s
+| HashMap | 10000000 | 0 (0.00%) | 11441647 (87.40%) | 5.1444732s
+| NOSMap | 80000000 | 0 (0.00%) | 80088096 (99.89%) | 205.6192116s
+| HashMap | 80000000 | 0 (0.00%) | 91533176 (87.40%) | 53.5207945s
+| NOSMap | 303872 | 0 (0.00%) | 304207 (99.89%) | 173.1047ms
+| HashMap | 303872 | 0 (0.00%) | 347680 (87.40%) | 104.6524ms
+| NOSMap | 38647798 | 0 (0.00%) | 38690360 (99.89%) | 120.2457072s
+| HashMap | 38647798 | 0 (0.00%) | 44219452 (87.40%) | 31.3383805s
+| **Preallocated w/ missing** | NOSMap | 1000000 | 125000 (12.50%) | 1001102 (99.89%) | 681.8579ms
+| HashMap | 1000000 | 125000 (12.50%) | 1144165 (87.40%) | 421.4585ms
+| NOSMap | 10000000 | 1250000 (12.50%) | 10011012 (99.89%) | 9.4380203s
+| HashMap | 10000000 | 1250000 (12.50%) | 11441647 (87.40%) | 6.4654762s
+| NOSMap | 80000000 | 10000000 (12.50%) | 80088096 (99.89%) | 218.7643619s
+| HashMap | 80000000 | 10000000 (12.50%) | 91533176 (87.40%) | 66.380596s
+| NOSMap | 303872 | 37984 (12.50%) | 304207 (99.89%) | 2.83666s
+| HashMap | 303872 | 37984 (12.50%) | 347680 (87.40%) | 112.8536ms
+| NOSMap | 38647798 | 386 (0.00%) | 38690360 (99.89%) | 134.2869561s
+| HashMap | 38647798 | 386 (0.00%) | 44219452 (87.40%) | 40.2543792s
+| **Resizing w/o missing** | NOSMap | 1000000 | 0 (0.00%) | 0 (inf%) | 436.3151ms
+| HashMap | 1000000 | 0 (0.00%) | 0 (inf%) | 557.3059ms
+| NOSMap | 10000000 | 0 (0.00%) | 0 (inf%) | 9.1041956s
+| HashMap | 10000000 | 0 (0.00%) | 0 (inf%) | 7.8982911s
+| NOSMap | 80000000 | 0 (0.00%) | 0 (inf%) | 63.020101s
+| HashMap | 80000000 | 0 (0.00%) | 0 (inf%) | 80.0118641s
+| NOSMap | 303872 | 0 (0.00%) | 0 (inf%) | 200.1249ms
+| HashMap | 303872 | 0 (0.00%) | 0 (inf%) | 133.9257ms
+| NOSMap | 38647798 | 0 (0.00%) | 0 (inf%) | 75.9037819s
+| HashMap | 38647798 | 0 (0.00%) | 0 (inf%) | 46.4104112s
+| **Resizing w/ missing** | NOSMap | 1000000 | 10000 (1.00%) | 0 (inf%) | 472.4232ms
+| HashMap | 1000000 | 10000 (1.00%) | 0 (inf%) | 538.1744ms
+| NOSMap | 10000000 | 100000 (1.00%) | 0 (inf%) | 9.2910668s
+| HashMap | 10000000 | 100000 (1.00%) | 0 (inf%) | 8.0348904s
+| NOSMap | 80000000 | 800000 (1.00%) | 0 (inf%) | 60.6304244s
+| HashMap | 80000000 | 800000 (1.00%) | 0 (inf%) | 82.1701226s
+| NOSMap | 303872 | 3038 (1.00%) | 0 (inf%) | 214.6126ms
+| HashMap | 303872 | 3038 (1.00%) | 0 (inf%) | 135.4813ms
+| NOSMap | 38647798 | 386 (0.00%) | 0 (inf%) | 78.2482301s
+| HashMap | 38647798 | 386 (0.00%) | 0 (inf%) | 48.0270358s
 ```
 **NOSMap setting**
 ```rs
@@ -95,7 +126,7 @@ Time elapsed for HashMap is: 143.6554ms | key size 303872 | get missing size 379
 ```
 **Benchmark code**
 ```rs
-fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize) {
+fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, missing_size: usize) {
 	{
 		let start = Instant::now();
 
@@ -117,11 +148,11 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize
 			}
 		}
 
-		for i in 0..get_missing_size {
+		for i in 0..missing_size {
 			map.get(&Vec::<u8>::from(format!("key{}", i)));
 		}
 
-		println!("Time elapsed for NOSMap is: {:?} | key size {} | get missing size {} ({:.2}%) | capacity {} ({:.2}%)", start.elapsed(), keys.len(), get_missing_size, keys.len() as f32 / get_missing_size as f32, capacity, keys.len() as f32 / capacity as f32 * 100.0);
+		println!("| NOSMap | {} | {} ({:.2}%) | {} ({:.2}%) | {:?}", keys.len(), missing_size, missing_size as f32 / keys.len() as f32 * 100.0, capacity, keys.len() as f32 / capacity as f32 * 100.0, start.elapsed());
 	}
 	{
 		let start = Instant::now();
@@ -144,11 +175,11 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize
 			}
 		}
 
-		for i in 0..get_missing_size {
+		for i in 0..missing_size {
 			map.get(&Vec::<u8>::from(format!("key{}", i)));
 		}
 
-		println!("Time elapsed for HashMap is: {:?} | key size {} | get missing size {} ({:.2}%) | capacity {} ({:.2}%)", start.elapsed(), keys.len(), get_missing_size, keys.len() as f32 / get_missing_size as f32, capacity, keys.len() as f32 / capacity as f32 * 100.0);
+		println!("| HashMap | {} | {} ({:.2}%) | {} ({:.2}%) | {:?}", keys.len(), missing_size, missing_size as f32 / keys.len() as f32 * 100.0, capacity, keys.len() as f32 / capacity as f32 * 100.0, start.elapsed());
 	}
 }
 ```
@@ -189,9 +220,9 @@ print(f"Number of tries for a {probability * 100.0:.2f}% chance of collision wit
 # 🚤🔥 Drawbacks - Reason
 - Written in Rust instead of C - My skill issues 😭😭😭 ("I cannot fix `void *` from SIGSEGV in C.")
 - Need a decompiler to read the code 🗿🙄👽
-- 15% slower than the Rust hash map; could be much slower than 50% in edge cases
+- 15% slower than the Rust hash map; could be 100% slower in edge cases
 - Hard to debug even in Rust - The dynamic linear probing mechanism is borderline nondeterministic
-- Very slow in `find()` missing - Wasn't able to determine if a key exist, I'll be rushing to improve it
+- Very slow in `find()` missing - NOSMap wasn't able to determine if a key exist, I'll be rushing to improve it
 
 # 🧻🤣🤣🤣 References
 I learned new buzzwords to say. This is my name-dropping exercise. 😇

@@ -24,15 +24,15 @@ fn load_file_as_vec_vec_u8(file_path: &str) -> std::io::Result<Vec<Vec<u8>>> {
 	Ok(vec_vec_u8)
 }
 
-fn benchmark_1(test_size: usize, test_capacity: usize, get_missing_size: usize) {
+fn benchmark_1(test_size: usize, test_capacity: usize, missing_size: usize) {
 	let mut keys = Vec::with_capacity(test_size);
 	for i in 0..test_size {
 		keys.push(Vec::<u8>::from(format!("key{}", i)));
 	}
-	benchmark_2(keys, test_capacity, get_missing_size);
+	benchmark_2(keys, test_capacity, missing_size);
 }
 
-fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize) {
+fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, missing_size: usize) {
 	{
 		let start = Instant::now();
 
@@ -54,11 +54,11 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize
 			}
 		}
 
-		for i in 0..get_missing_size {
+		for i in 0..missing_size {
 			map.get(&Vec::<u8>::from(format!("key{}", i)));
 		}
 
-		println!("Time elapsed for NOSMap is: {:?} | key size {} | get missing size {} ({:.2}%) | capacity {} ({:.2}%)", start.elapsed(), keys.len(), get_missing_size, keys.len() as f32 / get_missing_size as f32, capacity, keys.len() as f32 / capacity as f32 * 100.0);
+		println!("| NOSMap | {} | {} ({:.2}%) | {} ({:.2}%) | {:?}", keys.len(), missing_size, missing_size as f32 / keys.len() as f32 * 100.0, capacity, keys.len() as f32 / capacity as f32 * 100.0, start.elapsed());
 	}
 	{
 		let start = Instant::now();
@@ -81,40 +81,41 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize
 			}
 		}
 
-		for i in 0..get_missing_size {
+		for i in 0..missing_size {
 			map.get(&Vec::<u8>::from(format!("key{}", i)));
 		}
 
-		println!("Time elapsed for HashMap is: {:?} | key size {} | get missing size {} ({:.2}%) | capacity {} ({:.2}%)", start.elapsed(), keys.len(), get_missing_size, keys.len() as f32 / get_missing_size as f32, capacity, keys.len() as f32 / capacity as f32 * 100.0);
+		println!("| HashMap | {} | {} ({:.2}%) | {} ({:.2}%) | {:?}", keys.len(), missing_size, missing_size as f32 / keys.len() as f32 * 100.0, capacity, keys.len() as f32 / capacity as f32 * 100.0, start.elapsed());
 	}
 }
 
 fn main() {
 	println!("---------- Loading file ----------");
 	let keys_304k = load_file_as_vec_vec_u8("Top304Thousand-probable-v2.txt").unwrap();
-	// let keys_38m = load_file_as_vec_vec_u8("hk_hlm_founds.txt").unwrap();
-	println!("---------- Preallocated w/o missing ----------");
+	let keys_38m = load_file_as_vec_vec_u8("hk_hlm_founds.txt").unwrap();
+	println!("| Scenario | Map Type | Key Size | Missing Size (Percentage) | Initial Capacity | Time Elapsed (ms/s) |\n|---|---|---|---|---|---|");
+	print!("| **Preallocated w/o missing** ");
 	benchmark_1(1_000_000, 1_000_000, 0);
 	benchmark_1(1_000_000_0, 1_000_000_0, 0);
-	// benchmark_1(8_000_000_0, 8_000_000_0, 0);
+	benchmark_1(8_000_000_0, 8_000_000_0, 0);
 	benchmark_2(keys_304k.clone(), keys_304k.len(), 0);
-	// benchmark_2(keys_38m.clone(), keys_38m.len(), 0);
-	println!("---------- Preallocated w/ missing ----------");
+	benchmark_2(keys_38m.clone(), keys_38m.len(), 0);
+	print!("| **Preallocated w/ missing** ");
 	benchmark_1(1_000_000, 1_000_000, 1_000_000 / 8);
 	benchmark_1(1_000_000_0, 1_000_000_0, 1_000_000_0 / 8);
-	// benchmark_1(8_000_000_0, 8_000_000_0, 8_000_000_0 / 8);
+	benchmark_1(8_000_000_0, 8_000_000_0, 8_000_000_0 / 8);
 	benchmark_2(keys_304k.clone(), keys_304k.len(), keys_304k.len() / 8);
-	// benchmark_2(keys_38m.clone(), keys_38m.len(), keys_38m.len() / 8);
-	println!("---------- Resizing w/o missing ----------");
+	benchmark_2(keys_38m.clone(), keys_38m.len(), keys_38m.len() / 100_000);
+	print!("| **Resizing w/o missing** ");
 	benchmark_1(1_000_000, 0, 0);
 	benchmark_1(1_000_000_0, 0, 0);
-	// benchmark_1(8_000_000_0, 0, 0);
+	benchmark_1(8_000_000_0, 0, 0);
 	benchmark_2(keys_304k.clone(), 0, 0);
-	// benchmark_2(keys_38m.clone(), 0, 0);
-	println!("---------- Resizing w/ missing ----------");
-	benchmark_1(1_000_000, 0, 1_000_000 / 8);
-	benchmark_1(1_000_000_0, 0, 1_000_000_0 / 8);
-	// benchmark_1(8_000_000_0, 0, 8_000_000_0 / 8);
-	benchmark_2(keys_304k.clone(), 0, keys_304k.len() / 8);
-	// benchmark_2(keys_38m.clone(), 0, keys_38m.len() / 8);
+	benchmark_2(keys_38m.clone(), 0, 0);
+	print!("| **Resizing w/ missing** ");
+	benchmark_1(1_000_000, 0, 1_000_000 / 100);
+	benchmark_1(1_000_000_0, 0, 1_000_000_0 / 100);
+	benchmark_1(8_000_000_0, 0, 8_000_000_0 / 100);
+	benchmark_2(keys_304k.clone(), 0, keys_304k.len() / 100);
+	benchmark_2(keys_38m.clone(), 0, keys_38m.len() / 100_000);
 }
