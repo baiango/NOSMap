@@ -10,19 +10,32 @@ NOSMap will also ace most of the section on benchmarks from people; only if you 
 # 🫠🌪️🏳️ Performance
 I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash map. I will declare defeat. I am done with this hash map.
 
-| Map Type | Key Size | Capacity | Preallocated Time | Resizing Time |
-|---|---|---|---|---|
-| NOSMap | 1,000,000 | 1,031,992 | 293.022ms | 380.7158ms |
-| NOSMap | 10,000,000 | 10,319,918 | 4.222s | 4.951s |
-| NOSMap | 80,000,000 | 82,559,344 | 39.605s | 45.892s |
-| NOSMap | [303,872](https://weakpass.com/wordlist/1859) | 313,594 | 99.2489ms | 156.946ms |
-| NOSMap | [38,647,798](https://weakpass.com/wordlist/1256) | 39,884,212 | 17.715s | 55.975s |
-||
-| HashMap | 1,000,000 | 1,144,165 | 244.8ms | 420.4349ms |
-| HashMap | 10,000,000 | 11,441,647 | 3.124s | 4.749s |
-| HashMap | 80,000,000 | 91,533,176 | 30.551s | 61.099s |
-| HashMap | [303,872](https://weakpass.com/wordlist/1859) | 347,680 | 79.388ms | 104.899ms |
-| HashMap | [38,647,798](https://weakpass.com/wordlist/1256) | 44,219,452 | 17.380s | 27.292s |
+| Scenario | Map Type | Key Size | Missing Size (Percentage) | Initial Capacity | Time Elapsed (ms/s) |
+|---|---|---|---|---|---|
+| **Preallocated w/o missing** | NOSMap | 1,000,000 | 0 (inf%) | 1,001,102 (99.89%) | 640.7332 ms |
+|  | HashMap | 1,000,000 | 0 (inf%) | 1,144,165 (87.40%) | 399.6438 ms |
+|  | NOSMap | 10,000,000 | 0 (inf%) | 10,011,012 (99.89%) | 6.9721599 s |
+|  | HashMap | 10,000,000 | 0 (inf%) | 11,441,647 (87.40%) | 5.5180007 s |
+|  | NOSMap | 303,872 | 0 (inf%) | 304,207 (99.89%) | 130.4601 ms |
+|  | HashMap | 303,872 | 0 (inf%) | 347,680 (87.40%) | 114.8022 ms |
+| **Preallocated w/ missing** | NOSMap | 1,000,000 | 125,000 (8.00%) | 1,001,102 (99.89%) | 702.0693 ms |
+|  | HashMap | 1,000,000 | 125,000 (8.00%) | 1,144,165 (87.40%) | 434.22 ms |
+|  | NOSMap | 10,000,000 | 1,250,000 (8.00%) | 10,011,012 (99.89%) | 7.2867382 s |
+|  | HashMap | 10,000,000 | 1,250,000 (8.00%) | 11,441,647 (87.40%) | 5.7745234 s |
+|  | NOSMap | 303,872 | 37,984 (8.00%) | 304,207 (99.89%) | 2.7460905 s |
+|  | HashMap | 303,872 | 37,984 (8.00%) | 347,680 (87.40%) | 120.1809 ms |
+| **Resizing w/o missing** | NOSMap | 1,000,000 | 0 (inf%) | 0 (inf%) | 445.2367 ms |
+|  | HashMap | 1,000,000 | 0 (inf%) | 0 (inf%) | 540.8554 ms |
+|  | NOSMap | 10,000,000 | 0 (inf%) | 0 (inf%) | 5.0915601 s |
+|  | HashMap | 10,000,000 | 0 (inf%) | 0 (inf%) | 6.7179596 s |
+|  | NOSMap | 303,872 | 0 (inf%) | 0 (inf%) | 204.7688 ms |
+|  | HashMap | 303,872 | 0 (inf%) | 0 (inf%) | 135.0235 ms |
+| **Resizing w/ missing** | NOSMap | 1,000,000 | 125,000 (8.00%) | 0 (inf%) | 503.0182 ms |
+|  | HashMap | 1,000,000 | 125,000 (8.00%) | 0 (inf%) | 587.1675 ms |
+|  | NOSMap | 10,000,000 | 1,250,000 (8.00%) | 0 (inf%) | 5.5197976 s |
+|  | HashMap | 10,000,000 | 1,250,000 (8.00%) | 0 (inf%) | 7.3583459 s |
+|  | NOSMap | 303,872 | 37,984 (8.00%) | 0 (inf%) | 211.3901 ms |
+|  | HashMap | 303,872 | 37,984 (8.00%) | 0 (inf%) | 143.6554 ms |
 
 **Running command:**
 ```
@@ -31,29 +44,34 @@ cargo r --release
 
 **Benchmark output:**
 ```
----------- Loading file ----------
----------- Preallocated ----------
-Time elapsed for NOSMap is: 293.0227ms | key size 1000000 | capacity 1031992
-Time elapsed for HashMap is: 244.8ms | key size 1000000 | capacity 1144165
-Time elapsed for NOSMap is: 4.2228494s | key size 10000000 | capacity 10319918
-Time elapsed for HashMap is: 3.1242706s | key size 10000000 | capacity 11441647
-Time elapsed for NOSMap is: 39.6058656s | key size 80000000 | capacity 82559344
-Time elapsed for HashMap is: 30.5517177s | key size 80000000 | capacity 91533176
-Time elapsed for NOSMap is: 99.2489ms | key size 303872 | capacity 313594
-Time elapsed for HashMap is: 79.388ms | key size 303872 | capacity 347680
-Time elapsed for NOSMap is: 17.7158133s | key size 38647798 | capacity 39884212
-Time elapsed for HashMap is: 17.38028s | key size 38647798 | capacity 44219452
----------- Resizing ----------
-Time elapsed for NOSMap is: 380.7158ms | key size 1000000 | capacity 0
-Time elapsed for HashMap is: 420.4349ms | key size 1000000 | capacity 0
-Time elapsed for NOSMap is: 4.9514057s | key size 10000000 | capacity 0
-Time elapsed for HashMap is: 4.7491988s | key size 10000000 | capacity 0
-Time elapsed for NOSMap is: 45.8922994s | key size 80000000 | capacity 0
-Time elapsed for HashMap is: 61.0990443s | key size 80000000 | capacity 0
-Time elapsed for NOSMap is: 156.946ms | key size 303872 | capacity 0
-Time elapsed for HashMap is: 104.8991ms | key size 303872 | capacity 0
-Time elapsed for NOSMap is: 55.975341s | key size 38647798 | capacity 0
-Time elapsed for HashMap is: 27.2924489s | key size 38647798 | capacity 0
+---------- Preallocated w/o missing ----------
+Time elapsed for NOSMap is: 640.7332ms | key size 1000000 | get missing size 0 (inf%) | capacity 1001102 (99.89%)
+Time elapsed for HashMap is: 399.6438ms | key size 1000000 | get missing size 0 (inf%) | capacity 1144165 (87.40%)
+Time elapsed for NOSMap is: 6.9721599s | key size 10000000 | get missing size 0 (inf%) | capacity 10011012 (99.89%)
+Time elapsed for HashMap is: 5.5180007s | key size 10000000 | get missing size 0 (inf%) | capacity 11441647 (87.40%)
+Time elapsed for NOSMap is: 130.4601ms | key size 303872 | get missing size 0 (inf%) | capacity 304207 (99.89%)
+Time elapsed for HashMap is: 114.8022ms | key size 303872 | get missing size 0 (inf%) | capacity 347680 (87.40%)
+---------- Preallocated w/ missing ----------
+Time elapsed for NOSMap is: 702.0693ms | key size 1000000 | get missing size 125000 (8.00%) | capacity 1001102 (99.89%)
+Time elapsed for HashMap is: 434.22ms | key size 1000000 | get missing size 125000 (8.00%) | capacity 1144165 (87.40%)
+Time elapsed for NOSMap is: 7.2867382s | key size 10000000 | get missing size 1250000 (8.00%) | capacity 10011012 (99.89%)
+Time elapsed for HashMap is: 5.7745234s | key size 10000000 | get missing size 1250000 (8.00%) | capacity 11441647 (87.40%)
+Time elapsed for NOSMap is: 2.7460905s | key size 303872 | get missing size 37984 (8.00%) | capacity 304207 (99.89%)
+Time elapsed for HashMap is: 120.1809ms | key size 303872 | get missing size 37984 (8.00%) | capacity 347680 (87.40%)
+---------- Resizing w/o missing ----------
+Time elapsed for NOSMap is: 445.2367ms | key size 1000000 | get missing size 0 (inf%) | capacity 0 (inf%)
+Time elapsed for HashMap is: 540.8554ms | key size 1000000 | get missing size 0 (inf%) | capacity 0 (inf%)
+Time elapsed for NOSMap is: 5.0915601s | key size 10000000 | get missing size 0 (inf%) | capacity 0 (inf%)
+Time elapsed for HashMap is: 6.7179596s | key size 10000000 | get missing size 0 (inf%) | capacity 0 (inf%)
+Time elapsed for NOSMap is: 204.7688ms | key size 303872 | get missing size 0 (inf%) | capacity 0 (inf%)
+Time elapsed for HashMap is: 135.0235ms | key size 303872 | get missing size 0 (inf%) | capacity 0 (inf%)
+---------- Resizing w/ missing ----------
+Time elapsed for NOSMap is: 503.0182ms | key size 1000000 | get missing size 125000 (8.00%) | capacity 0 (inf%)
+Time elapsed for HashMap is: 587.1675ms | key size 1000000 | get missing size 125000 (8.00%) | capacity 0 (inf%)
+Time elapsed for NOSMap is: 5.5197976s | key size 10000000 | get missing size 1250000 (8.00%) | capacity 0 (inf%)
+Time elapsed for HashMap is: 7.3583459s | key size 10000000 | get missing size 1250000 (8.00%) | capacity 0 (inf%)
+Time elapsed for NOSMap is: 211.3901ms | key size 303872 | get missing size 37984 (8.00%) | capacity 0 (inf%)
+Time elapsed for HashMap is: 143.6554ms | key size 303872 | get missing size 37984 (8.00%) | capacity 0 (inf%)
 ```
 **NOSMap setting**
 ```rs
