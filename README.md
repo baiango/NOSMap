@@ -1,5 +1,5 @@
 # 🤗✨ NOSmap - Dinitrogen oxide Hashmap
-NOSMap is a virtual homework experimental AVX2 accelerated hashmap ​project that aims to have a 97% load factor while being fast for low-latency number crunching and memory-intensive data processing algorithms at disregard of quadratic implementation difficulty and portability. However, multiple mini unit tests are made to ensure correctness of NOSMap.
+NOSMap is a virtual homework experimental AVX2 accelerated hashmap ​project that aims to have a 99.9% load factor while being fast for low-latency number crunching and memory-intensive data processing algorithms at disregard of quadratic implementation difficulty and portability. However, multiple mini unit tests are made to ensure correctness of NOSMap.
 
 NOSMap will speed up training tokenizer by minimizing memory reads and writes, reducing memory usage and computation to the minimum possible.
 
@@ -189,6 +189,7 @@ print(f"Number of tries for a {probability * 100.0:.2f}% chance of collision wit
 - Need a decompiler to read the code 🗿🙄👽
 - 15% slower than the Rust hash map
 - Hard to debug even in Rust - Borderline nondeterministic dynamic linear probing mechanism
+- Very slow in find missing - I'll be rushing to improve it
 
 # 🧻🤣🤣🤣 References
 I learned new buzzwords to say. This is my name-dropping exercise. 😇

@@ -36,7 +36,7 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize) {
 	{
 		let start = Instant::now();
 
-		let capacity = (test_capacity as f32 / 0.9998).ceil() as usize;
+		let capacity = (test_capacity as f32 / 0.998).ceil() as usize;
 		let mut map = NOSMap::<i32>::new(capacity);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.put(key.clone(), i as i32);
@@ -46,13 +46,18 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize) {
 			match map.get(&key) {
 				Some(index) if index == i as i32 => (),
 				Some(index) => {
-					println!("MISMATCH:\nleft: {} | {:?}\nright: {} | {:?}", i, keys[i], index, keys[index as usize]);
+					// println!("MISMATCH:\nleft: {} | {:?}\nright: {} | {:?}", i, keys[i], index, keys[index as usize]);
 				}
 				None => {
 					panic!("Key not found in map: {:?}", key);
 				}
 			}
 		}
+
+		// Find missing
+		// for i in 0..1 {
+		// 	map.get(&Vec::<u8>::from(format!("key{}", i)));
+		// }
 
 		println!("Time elapsed for NOSMap is: {:?} | key size {} | capacity {}", start.elapsed(), keys.len(), capacity);
 	}
@@ -69,13 +74,18 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize) {
 			match map.get(&key) {
 				Some(&index) if index == i as i32 => (),
 				Some(&index) => {
-					println!("MISMATCH:\nleft: {} | {:?}\nright: {} | {:?}", i, keys[i], index, keys[index as usize]);
+					// println!("MISMATCH:\nleft: {} | {:?}\nright: {} | {:?}", i, keys[i], index, keys[index as usize]);
 				}
 				None => {
 					panic!("Key not found in map: {:?}", key);
 				}
 			}
 		}
+
+		// Find missing
+		// for i in 0..1 {
+		// 	map.get(&Vec::<u8>::from(format!("key{}", i)));
+		// }
 
 		println!("Time elapsed for HashMap is: {:?} | key size {} | capacity {}", start.elapsed(), keys.len(), capacity);
 	}
@@ -86,14 +96,14 @@ fn main() {
 	let keys_304k = load_file_as_vec_vec_u8("Top304Thousand-probable-v2.txt").unwrap();
 	// let keys_38m = load_file_as_vec_vec_u8("hk_hlm_founds.txt").unwrap();
 	println!("---------- Preallocated ----------");
-	// benchmark_1(1_000_000, 1_000_000);
-	// benchmark_1(1_000_000_0, 1_000_000_0);
+	benchmark_1(1_000_000, 1_000_000);
+	benchmark_1(1_000_000_0, 1_000_000_0);
 	// benchmark_1(8_000_000_0, 8_000_000_0);
-	// benchmark_2(keys_304k.clone(), keys_304k.len());
+	benchmark_2(keys_304k.clone(), keys_304k.len());
 	// benchmark_2(keys_38m.clone(), keys_38m.len());
 	println!("---------- Resizing ----------");
-	// benchmark_1(1_000_000, 0);
-	// benchmark_1(1_000_000_0, 0);
+	benchmark_1(1_000_000, 0);
+	benchmark_1(1_000_000_0, 0);
 	// benchmark_1(8_000_000_0, 0);
 	benchmark_2(keys_304k.clone(), 0);
 	// benchmark_2(keys_38m.clone(), 0);

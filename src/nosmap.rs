@@ -39,7 +39,8 @@ pub struct NOSMap<V> {
 	pub load: usize,
 	pub grow_size: f32,
 	pub load_factor: f32,
-	modulo_const: usize
+	modulo_const: usize,
+	worst_probe: usize
 }
 
 impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
@@ -55,22 +56,25 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			resize_hashes,
 			load: 0,
 			grow_size: 5.05,
-			load_factor: 0.9999,
-			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize
+			load_factor: 0.999,
+			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize,
+			worst_probe: 0
 		}
 	}
 
-	pub fn _find_empty_bucket_hash(&self, key: &Vec<u8>, hash: u64) -> usize {
+	pub fn _find_empty_bucket_hash(&mut self, key: &Vec<u8>, hash: u64) -> usize {
 		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
-		let mut next_stride = key[0] as usize + (hash & 0x3ff) as usize;
+		let next_stride = key[0] as usize + (hash & 0x3ff) as usize;
 
-		let mut i = 0;
+		let mut probed = 0;
 		loop {
 			let simd_index = index / 32;
 			let rounded_index = simd_index * 32;
 			let empty = find_leftmost_avx2(&self.one_byte_hashes[simd_index], &u8x32::splat(EMPTY)) as usize;
 
-			if empty != 64 && rounded_index + empty < self.key_values.len() {
+			if empty != 64
+			&& rounded_index + empty < self.key_values.len(){
+				self.worst_probe = max(probed, self.worst_probe);
 				return rounded_index + empty;
 			}
 
@@ -78,39 +82,43 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			while index >= self.key_values.len() {
 				index -= self.key_values.len();
 			}
-			if i >= self.key_values.len() {
-				// println!("_find_empty_bucket_hash | Index might have an infinite loop for key {:?} | index {}", key, index);
-				next_stride = 1;
-			}
-			i += 1;
+			probed += 1;
 		}
 	}
 
 	pub fn _find_hash_match_hash(&self, key: &Vec<u8>, hash: u64) -> Option<usize> {
 		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
-		let compare_hash = u8x32::splat(hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED);
-		let mut next_stride = key[0] as usize + (hash & 0x3ff) as usize;
+		let compare_hash = hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED;
+		let compare_hashes = u8x32::splat(compare_hash);
+		let next_stride = key[0] as usize + (hash & 0x3ff) as usize;
 
-		let mut i = 0;
+		let mut probed = 0;
 		loop {
 			let simd_index = index / 32;
 			let rounded_index = simd_index * 32;
-			let mut one_byte_simd = self.one_byte_hashes[simd_index];
 
+			let mut one_byte_simd = self.one_byte_hashes[simd_index];
+			let empty = find_leftmost_avx2(&one_byte_simd, &u8x32::splat(EMPTY)) as usize;
 			loop {
-				let hash_match = find_leftmost_avx2(&one_byte_simd, &compare_hash) as usize;
-				let empty = find_leftmost_avx2(&one_byte_simd, &u8x32::splat(EMPTY)) as usize;
+				let hash_match = find_leftmost_avx2(&one_byte_simd, &compare_hashes) as usize;
 				if hash_match == 64 {
 					break;
 				}
 				one_byte_simd[hash_match] = TOMESTONE;
+				// println!("compare_hash {:?}", compare_hash);
+				// println!("one_byte_simd {:?}", one_byte_simd);
+				// println!("one_byte_simd[hash_match] {:?}", one_byte_simd[hash_match]);
+				// println!("self.one_byte_hashes[simd_index] {:?}", self.one_byte_hashes[simd_index]);
+				// println!("self.one_byte_hashes[simd_index][hash_match] {:?}", self.one_byte_hashes[simd_index][hash_match]);
 
 				let key_index = rounded_index + hash_match;
-				if hash == self.resize_hashes[key_index]
+				if compare_hash == self.one_byte_hashes[simd_index][hash_match]
+				&& hash == self.resize_hashes[key_index]
 				&& *key == self.key_values[key_index].key {
 					return Some(key_index)
 				}
 
+				// println!("_find_hash_match_hash | key {:?} | empty {} | hash_match {}", key, empty, hash_match);
 				if empty <= hash_match {
 					return None;
 				}
@@ -120,15 +128,15 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			while index >= self.key_values.len() {
 				index -= self.key_values.len();
 			}
-			if i >= self.key_values.len() {
-				// println!("_find_hash_match_hash | Index might have an infinite loop for key {:?} | index {}", key, index);
-				next_stride = 1;
+			if probed >= self.worst_probe {
+				println!("_find_hash_match_hash | Index might have an infinite loop for key {:?} | index {} | probed {}", key, index, probed);
+				return None;
 			}
-			i += 1;
+			probed += 1;
 		}
 	}
 
-	pub fn _find_empty_bucket_string(&self, key: &Vec<u8>) -> (usize, u64) {
+	pub fn _find_empty_bucket_string(&mut self, key: &Vec<u8>) -> (usize, u64) {
 		let hash = hash_u8(key);
 		let index = self._find_empty_bucket_hash(key, hash);
 		(index, hash)
@@ -181,6 +189,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		let new_prime_capacity = next_prime(new_capacity as u32) as usize;
 		self.modulo_const = uint_div_const(new_prime_capacity as u64) as usize;
 		self.load = 0;
+		self.worst_probe = 0;
 		let mut old_one_byte_hashes = mem::replace(&mut self.one_byte_hashes, vec![u8x32::splat(0); new_prime_capacity]);
 		let old_key_values = mem::replace(&mut self.key_values, vec![KeyValue::default(); new_prime_capacity]);
 		let old_resize_hashes = mem::replace(&mut self.resize_hashes, vec![0; new_prime_capacity]);
