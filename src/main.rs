@@ -24,19 +24,19 @@ fn load_file_as_vec_vec_u8(file_path: &str) -> std::io::Result<Vec<Vec<u8>>> {
 	Ok(vec_vec_u8)
 }
 
-fn benchmark_1(test_size: usize, test_capacity: usize) {
+fn benchmark_1(test_size: usize, test_capacity: usize, get_missing_size: usize) {
 	let mut keys = Vec::with_capacity(test_size);
 	for i in 0..test_size {
 		keys.push(Vec::<u8>::from(format!("key{}", i)));
 	}
-	benchmark_2(keys, test_capacity);
+	benchmark_2(keys, test_capacity, get_missing_size);
 }
 
-fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize) {
+fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize, get_missing_size: usize) {
 	{
 		let start = Instant::now();
 
-		let capacity = (test_capacity as f32 / 0.998).ceil() as usize;
+		let capacity = (test_capacity as f32 / 0.989).ceil() as usize;
 		let mut map = NOSMap::<i32>::new(capacity);
 		for (i, key) in keys.clone().into_iter().enumerate() {
 			map.put(key.clone(), i as i32);
@@ -54,12 +54,11 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize) {
 			}
 		}
 
-		// Find missing
-		// for i in 0..1 {
-		// 	map.get(&Vec::<u8>::from(format!("key{}", i)));
-		// }
+		for i in 0..get_missing_size {
+			map.get(&Vec::<u8>::from(format!("key{}", i)));
+		}
 
-		println!("Time elapsed for NOSMap is: {:?} | key size {} | capacity {}", start.elapsed(), keys.len(), capacity);
+		println!("Time elapsed for NOSMap is: {:?} | key size {} | get missing size {} | capacity {}", start.elapsed(), keys.len(), get_missing_size, capacity);
 	}
 	{
 		let start = Instant::now();
@@ -82,12 +81,11 @@ fn benchmark_2(keys: Vec<Vec<u8>>, test_capacity: usize) {
 			}
 		}
 
-		// Find missing
-		// for i in 0..1 {
-		// 	map.get(&Vec::<u8>::from(format!("key{}", i)));
-		// }
+		for i in 0..get_missing_size {
+			map.get(&Vec::<u8>::from(format!("key{}", i)));
+		}
 
-		println!("Time elapsed for HashMap is: {:?} | key size {} | capacity {}", start.elapsed(), keys.len(), capacity);
+		println!("Time elapsed for HashMap is: {:?} | key size {} | get missing size {} | capacity {}", start.elapsed(), keys.len(), get_missing_size, capacity);
 	}
 }
 
@@ -96,15 +94,17 @@ fn main() {
 	let keys_304k = load_file_as_vec_vec_u8("Top304Thousand-probable-v2.txt").unwrap();
 	// let keys_38m = load_file_as_vec_vec_u8("hk_hlm_founds.txt").unwrap();
 	println!("---------- Preallocated ----------");
-	benchmark_1(1_000_000, 1_000_000);
-	benchmark_1(1_000_000_0, 1_000_000_0);
-	// benchmark_1(8_000_000_0, 8_000_000_0);
-	benchmark_2(keys_304k.clone(), keys_304k.len());
-	// benchmark_2(keys_38m.clone(), keys_38m.len());
+	// benchmark_1(1_000, 1_000);
+	benchmark_1(1_000_000, 1_000_000, 1_000_000 / 1000);
+	benchmark_1(1_000_000_0, 1_000_000_0, 1_000_000_0 / 1000);
+	// benchmark_1(8_000_000_0, 8_000_000_0, 8_000_000_0 / 1000);
+	benchmark_2(keys_304k.clone(), keys_304k.len(), keys_304k.len() / 1000);
+	// benchmark_2(keys_38m.clone(), keys_38m.len(), keys_38m.len() / 1000);
 	println!("---------- Resizing ----------");
-	benchmark_1(1_000_000, 0);
-	benchmark_1(1_000_000_0, 0);
-	// benchmark_1(8_000_000_0, 0);
-	benchmark_2(keys_304k.clone(), 0);
-	// benchmark_2(keys_38m.clone(), 0);
+	// benchmark_1(1_000, 0);
+	benchmark_1(1_000_000, 0, 1_000_000 / 1000);
+	benchmark_1(1_000_000_0, 0, 1_000_000_0 / 1000);
+	// benchmark_1(8_000_000_0, 0, 8_000_000_0 / 1000);
+	benchmark_2(keys_304k.clone(), 0, keys_304k.len() / 1000);
+	// benchmark_2(keys_38m.clone(), 0, keys_38m.len() / 1000);
 }

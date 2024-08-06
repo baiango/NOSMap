@@ -29,7 +29,7 @@ pub struct KeyValue<V> {
 /// ### 1m Elements
 /// - initial_capacity: 1
 /// - grow_size 5.05
-/// - load_factor 0.97
+/// - load_factor 0.999
 #[derive(Debug)]
 pub struct NOSMap<V> {
 	pub one_byte_hashes: Vec<u8x32>,
@@ -73,7 +73,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			let empty = find_leftmost_avx2(&self.one_byte_hashes[simd_index], &u8x32::splat(EMPTY)) as usize;
 
 			if empty != 64
-			&& rounded_index + empty < self.key_values.len(){
+			&& rounded_index + empty < self.key_values.len() {
 				self.worst_probe = max(probed, self.worst_probe);
 				return rounded_index + empty;
 			}
@@ -104,23 +104,16 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 				if hash_match == 64 {
 					break;
 				}
-				one_byte_simd[hash_match] = TOMESTONE;
-				// println!("compare_hash {:?}", compare_hash);
-				// println!("one_byte_simd {:?}", one_byte_simd);
-				// println!("one_byte_simd[hash_match] {:?}", one_byte_simd[hash_match]);
-				// println!("self.one_byte_hashes[simd_index] {:?}", self.one_byte_hashes[simd_index]);
-				// println!("self.one_byte_hashes[simd_index][hash_match] {:?}", self.one_byte_hashes[simd_index][hash_match]);
+				one_byte_simd[hash_match] = EMPTY;
+				if empty <= hash_match {
+					return None;
+				}
 
 				let key_index = rounded_index + hash_match;
 				if compare_hash == self.one_byte_hashes[simd_index][hash_match]
 				&& hash == self.resize_hashes[key_index]
 				&& *key == self.key_values[key_index].key {
 					return Some(key_index)
-				}
-
-				// println!("_find_hash_match_hash | key {:?} | empty {} | hash_match {}", key, empty, hash_match);
-				if empty <= hash_match {
-					return None;
 				}
 			}
 
@@ -129,7 +122,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 				index -= self.key_values.len();
 			}
 			if probed >= self.worst_probe {
-				println!("_find_hash_match_hash | Index might have an infinite loop for key {:?} | index {} | probed {}", key, index, probed);
+				// println!("_find_hash_match_hash | Index might have an infinite loop for key {:?} | index {} | probed {}", key, index, probed);
 				return None;
 			}
 			probed += 1;
