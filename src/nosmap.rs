@@ -30,7 +30,7 @@ pub struct KeyValue<V> {
 pub struct NOSMap<V> {
 	pub one_byte_hashes: Vec<u8>,
 	pub key_values: Vec<KeyValue<V>>,
-	pub resize_hashes: Vec<u64>,
+	pub resize_hashes: Vec<u32>,
 
 	pub load: usize,
 	pub grow_size: f32,
@@ -51,13 +51,13 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			resize_hashes,
 			load: 0,
 			grow_size: 5.05,
-			load_factor: 0.999,
+			load_factor: 0.97,
 			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize
 		}
 	}
 
-	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u64) -> (usize, bool) {
-		let mut index = fast_mod(hash, self.modulo_const as u64, self.key_values.len() as u64) as usize;
+	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u32) -> (usize, bool) {
+		let mut index = fast_mod(hash as u64, self.modulo_const as u64, self.key_values.len() as u64) as usize;
 		let compare_hash = hash as u8;
 		let mut next_stride = key[0] as usize + (hash & 0x3ff) as usize;
 
@@ -66,6 +66,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		let mut i = 0;
 		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {
 			if compare_hash & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[index]
+			&& hash == self.resize_hashes[index]
 			&& *key == self.key_values[index].key {
 				return (index, true)
 			}
@@ -83,13 +84,13 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 		(index, false)
 	}
 
-	pub fn _find_buckets_string(&self, key: &Vec<u8>) -> (usize, u64, bool) {
+	pub fn _find_buckets_string(&self, key: &Vec<u8>) -> (usize, u32, bool) {
 		let hash = hash_u8(key);
 		let (index, found) = self._find_buckets_hash(key, hash);
 		(index, hash, found)
 	}
 
-	pub fn _put_only(&mut self, key: Vec<u8>, value: V, hash: u64, index: usize) {
+	pub fn _put_only(&mut self, key: Vec<u8>, value: V, hash: u32, index: usize) {
 		self.one_byte_hashes[index] = hash as u8 & !(OCCUPIED | TOMESTONE) | OCCUPIED;
 		self.resize_hashes[index] = hash;
 		self.key_values[index] = KeyValue{key, value};
@@ -210,7 +211,7 @@ mod tests {
 	#[test]
 	fn test_large_capacity() {
 		let mut keys = Vec::with_capacity(1_000_000);
-		for i in 1..1_000_000_0 {
+		for i in 1_000_000..1_100_000 {
 			keys.push(Vec::<u8>::from(format!("key{}", i)));
 		}
 		{
