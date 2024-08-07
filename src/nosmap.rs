@@ -51,7 +51,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			resize_hashes,
 			load: 0,
 			grow_size: 5.05,
-			load_factor: 0.97,
+			load_factor: 0.999,
 			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize
 		}
 	}
