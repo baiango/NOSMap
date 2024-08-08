@@ -18,13 +18,13 @@ pub struct KeyValue<V> {
 /// - NOSMap's speed is determined by resize count.
 /// - NOSMap will only start slowing down by bucket collisions at 95% above load factor, so, lowering the load factor will slow down NOSMap due to resizing time
 /// ## Performance Explanation
-/// - `grow_size` effects NOSMap's performance the most.
+/// - `growth_size` effects NOSMap's performance the most.
 /// - `initial_capacity` effects NOSMap's performance because of resizing.
 /// - `load_factor` effects NOSMap's performance stablity.
 /// ## Recommend setting
 /// ### 1m Elements
 /// - initial_capacity: 1
-/// - grow_size 5.05
+/// - growth_size 5.05
 /// - load_factor 0.97
 #[derive(Debug)]
 pub struct NOSMap<V> {
@@ -33,7 +33,7 @@ pub struct NOSMap<V> {
 	pub resize_hashes: Vec<u32>,
 
 	pub load: usize,
-	pub grow_size: f32,
+	pub growth_size: f32,
 	pub load_factor: f32,
 	modulo_const: usize
 }
@@ -50,38 +50,39 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 			key_values,
 			resize_hashes,
 			load: 0,
-			grow_size: 5.05,
+			growth_size: 5.05,
 			load_factor: 0.97,
-			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize
+			modulo_const: uint_div_const(initial_prime_capacity as u64) as usize,
 		}
 	}
 
 	pub fn _find_buckets_hash(&self, key: &Vec<u8>, hash: u32) -> (usize, bool) {
-		let mut index = fast_mod(hash as u64, self.modulo_const as u64, self.key_values.len() as u64) as usize;
+		let mut insert_index = fast_mod(hash as u64, self.modulo_const as u64, self.key_values.len() as u64) as usize;
 		let compare_hash = hash as u8;
 		let mut next_stride = key[0] as usize + (hash & 0x3ff) as usize;
 
 		// The AMD64 is running out of regesiter to use, so it will cause NOSMap to run much slower.
 		// Please probe the hash in batch with an array, or set up an artificial boundary.
-		let mut i = 0;
-		while self.one_byte_hashes[index] & (OCCUPIED | TOMESTONE) != EMPTY {
-			if compare_hash & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[index]
-			&& hash == self.resize_hashes[index]
-			&& *key == self.key_values[index].key {
-				return (index, true)
+		let mut probe_count = 0;
+		while self.one_byte_hashes[insert_index] & (OCCUPIED | TOMESTONE) != EMPTY {
+			if compare_hash & !(OCCUPIED | TOMESTONE) | OCCUPIED == self.one_byte_hashes[insert_index]
+			&& hash == self.resize_hashes[insert_index]
+			&& *key == self.key_values[insert_index].key {
+
+				return (insert_index, true)
 			}
 
-			index += next_stride;
-			while index >= self.key_values.len() {
-				index -= self.key_values.len();
+			insert_index += next_stride;
+			while insert_index >= self.key_values.len() {
+				insert_index -= self.key_values.len();
 			}
-			if i >= self.key_values.len() {
-				// println!("_find_buckets_hash | Index might have an infinite loop for key {:?} | index {}", key, index);
+			if probe_count >= self.key_values.len() {
+				println!("_find_buckets_hash | insert_index might have an infinite loop for key {:?} | insert_index {}", key, insert_index);
 				next_stride = 1;
 			}
-			i += 1;
+			probe_count += 1;
 		}
-		(index, false)
+		(insert_index, false)
 	}
 
 	pub fn _find_buckets_string(&self, key: &Vec<u8>) -> (usize, u32, bool) {
@@ -107,7 +108,7 @@ impl<V: Clone + Default + PartialEq + Debug> NOSMap<V> {
 	}
 
 	pub fn _auto_resize(&mut self) {
-		let new_capacity = max(self.key_values.len() + 1, (self.key_values.len() as f32 * self.grow_size).ceil() as usize);
+		let new_capacity = max(self.key_values.len() + 1, (self.key_values.len() as f32 * self.growth_size).ceil() as usize);
 		self._resize(new_capacity);
 	}
 

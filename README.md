@@ -3,12 +3,12 @@ NOSMap is a virtual homework experimental AVX2 accelerated hashmap ​project th
 
 NOSMap will speed up training tokenizer by minimizing memory reads and writes, reducing memory usage and computation to the minimum possible.
 
-NOSMap was designed for to end the users' search for the next fastest Hashmap on x86 CPU for few years.
+NOSMap was designed for to end the users' search for the next fastest Hashmap on AMD64 for few years.
 
 NOSMap will also ace most of the section on benchmarks from people; only if you can compile it, and the chance is 100.0% on AVX2 system because of the ease of the Rust installation.
 
 # 🫠🌪️🏳️ Performance
-I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash map. I will declare defeat. I am done with this hash map. 😭🙇‍♀️
+I am completely devastated by Rust hash map performance. My NOSMap's design could not beat the Rust hash map when preallocated both hash maps. I will declare defeat. I am done with this hash map. 😭🙇‍♀️ A 99.9% load for a hash map? It's just an overengineered array. I'ma start with NOSStack.
 
 | Scenario | Map Type | Key Size | Missing Size (Percentage) | Initial Capacity | Time Elapsed (ms/s) |
 |---|---|---|---|---|---|
@@ -219,10 +219,11 @@ print(f"Number of tries for a {probability * 100.0:.2f}% chance of collision wit
 
 # 🚤🔥 Drawbacks - Reason
 - Written in Rust instead of C - My skill issues 😭😭😭 ("I cannot fix `void *` from SIGSEGV in C.")
-- Need a decompiler to read the code 🗿🙄👽
+- A toy hash map with linear probing using a sum toy hash 🗿🙄👽
 - 15% slower than the Rust hash map; could be 100% slower in edge cases
 - Hard to debug even in Rust - The dynamic linear probing mechanism is borderline nondeterministic
 - Very slow in `find()` missing - NOSMap wasn't able to determine if a key exist, I'll be rushing to improve it
+- Low probe scalability - It uses linear probe, but should be enough for handling 200k elements
 
 # 🧻🤣🤣🤣 References
 I learned new buzzwords to say. This is my name-dropping exercise. 😇
@@ -236,6 +237,7 @@ I learned new buzzwords to say. This is my name-dropping exercise. 😇
 [Big O myths busted! (Time complexity is complicated)](https://youtu.be/7VHG6Y2QmtM)  
 [Understanding B-Trees: The Data Structure Behind Modern Databases](https://youtu.be/K1a2Bk8NrYQ)  
 [computers suck at division (a painful discovery)](https://youtu.be/ssDBqQ5f5_0)  
+[ktprime/emhash](https://github.com/ktprime/emhash)
 
 # #️⃣😴😴😴 Architecture high-level overview
 NOSMap was inspired by GPref's design, which is adding 2 bytes together and use it as a hash to find new buckets.
